@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { rng } from '../testing/random';
 import { loadScenarios } from '../testing/scenarios';
 import { conflictSet, violations } from '../timetable/conflicts';
 import { metrics, quality } from '../timetable/metrics';
@@ -12,12 +13,21 @@ const sc = (id: string) => {
   return s;
 };
 
+/**
+ * تشغيل حتمي: بذرة ثابتة وساعة افتراضية تتقدم 1.25 مللي ثانية عند كل قراءة (≈ سرعة جهاز
+ * تطوير عادي). كمية البحث لا تتعلق بسرعة الجهاز، فالنتيجة نفسها محليا وفي CI.
+ */
+const det = (seed = 1) => {
+  let t = 0;
+  return { random: rng(seed).next, now: () => (t += 1.25) };
+};
+
 describe('المحرك المحلي (منقول من engine في النموذج الأولي)', () => {
   it.each(['6.5-1-demo', '6.5-2-all-not-present', '6.5-4-45min-0830', '6.5-5-two-subjects'])(
     '%s: جدول كامل بلا مخالفات وبجودة قريبة من النموذج الأولي',
     (id) => {
       const s = sc(id);
-      const pl = generateTimetable(s.school, [], 3000);
+      const pl = generateTimetable(s.school, [], 3000, det());
       const model = buildModel(s.school);
       const placed = placementMap(pl);
       const m = metrics(model, placed);
@@ -26,12 +36,12 @@ describe('المحرك المحلي (منقول من engine في النموذج 
       const best = Math.max(...s.prototype.runs.map((r) => r.quality));
       expect(quality(m, conflictSet(model, placed).size)).toBeGreaterThanOrEqual(best - 12);
     },
-    30_000,
+    60_000,
   );
 
   it('6.5-3: الحصص الأربع المستحيلة تبقى بدون مكان، ولا مخالفة', () => {
     const s = sc('6.5-3-max-16');
-    const pl = generateTimetable(s.school, [], 2000);
+    const pl = generateTimetable(s.school, [], 2000, det());
     const model = buildModel(s.school);
     const placed = placementMap(pl);
     expect(violations(model, placed)).toEqual([]);
@@ -42,7 +52,7 @@ describe('المحرك المحلي (منقول من engine في النموذج 
     const s = sc('6.5-1-demo');
     const run = s.prototype.runs[0]!;
     const school = { ...s.school, locked_classes: ['1ACA', 'TC'] };
-    const pl = generateTimetable(school, run.placements, 2000);
+    const pl = generateTimetable(school, run.placements, 2000, det());
     const key = (p: {
       class_id: string;
       subject: string;
@@ -59,7 +69,7 @@ describe('المحرك المحلي (منقول من engine في النموذج 
     const s = sc('6.5-1-demo');
     // جدول مشوّه: نزع 10 ساعات
     const state = { school: s.school, placements: s.prototype.runs[0]!.placements.slice(10) };
-    const set = buildSolutions(state, 'إصلاح', null, false);
+    const set = buildSolutions(state, 'إصلاح', null, false, det());
     expect(set.list.length).toBeGreaterThan(0);
     expect(set.list.length).toBeLessThanOrEqual(3);
     const model = buildModel(s.school);
@@ -82,6 +92,7 @@ describe('المحرك المحلي (منقول من engine في النموذج 
       'زيادة',
       { kind: 'add_hour', teacher_id: t.id, class_id: c.class_id, regen: true },
       false,
+      det(),
     );
     expect(set.after.school.teachers[0]!.classes[0]!.hours).toBe(c.hours + 1);
   }, 60_000);
