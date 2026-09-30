@@ -1,9 +1,9 @@
 'use client';
 
 import { buildModel, placementMap, type Model, type Notice, type Slot } from '@hissas/shared';
-import { createContext, useCallback, useContext, useMemo, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { uid } from './demo';
-import { updateMeta, updateSchool, useSchool } from './store';
+import { setPlatform, updateMeta, updateSchool, useSchool } from './store';
 import type { SchoolMeta, SchoolState } from './types';
 
 export interface SchoolCtx {
@@ -49,6 +49,10 @@ export function SchoolProvider({
       })),
     [id],
   );
+  // المدرسة المفتوحة (ROOT.cur): إليها يرجع "/" وزر "رجوع إلى المدرسة"
+  useEffect(() => {
+    if (id) setPlatform((p) => (p.current === id ? p : { ...p, current: id }));
+  }, [id]);
   const school = found?.data.school;
   const placements = found?.data.placements;
   const model = useMemo(() => (school ? buildModel(school) : null), [school]);
