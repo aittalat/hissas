@@ -31,7 +31,11 @@ function load(): PlatformState {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(KEY) : null;
     if (raw) {
       const o = JSON.parse(raw) as PlatformState;
-      if (o?.v === 1 && o.schools?.length) return (state = o);
+      if (o?.v === 1 && o.schools?.length) {
+        // حقول أُضيفت بعد أول نسخة
+        for (const d of Object.values(o.data)) d.docs ??= [];
+        return (state = o);
+      }
     }
   } catch {
     /* بيانات تالفة: نبدأ من جديد */

@@ -43,7 +43,10 @@ export default function TimetablePage() {
   const solutions = useSolutions();
   const { school } = state;
   const [mode, setMode] = useState<'class' | 'teacher'>('class');
-  const [pickId, setPickId] = useState<string | null>(null);
+  // ?c= من شاشة الأقسام (cls-tt). الصفحة تُصيَّر في المتصفح فقط (بعد تحميل المخزن).
+  const [pickId, setPickId] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('c'),
+  );
   const [sel, setSel] = useState<string[] | null>(null);
   const [advAll, setAdvAll] = useState(false);
   const [fix, setFix] = useState<{ key: string; list: LoneProposal[] } | null>(null);

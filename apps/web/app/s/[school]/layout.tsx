@@ -10,6 +10,7 @@ import {
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
+import { LifeModalsProvider } from '@/components/life/modals';
 import { Logo } from '@/components/logo';
 import { ToastProvider } from '@/components/toast';
 import { SchoolProvider, useSchoolCtx } from '@/lib/school';
@@ -138,7 +139,9 @@ export default function SchoolLayout({ children }: { children: ReactNode }) {
           </div>
         }
       >
-        <Shell>{children}</Shell>
+        <LifeModalsProvider>
+          <Shell>{children}</Shell>
+        </LifeModalsProvider>
       </SchoolProvider>
     </ToastProvider>
   );

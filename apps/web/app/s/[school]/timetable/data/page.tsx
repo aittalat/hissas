@@ -46,7 +46,9 @@ function DataScreen() {
   const { school } = state;
   const [picked, setPicked] = useState<string | null>(params.get('t'));
   const [confirm, setConfirm] = useState<string | null>(null);
-  const [wizard, setWizard] = useState<WizardState | null>(null);
+  const [wizard, setWizard] = useState<WizardState | null>(() =>
+    params.get('new') ? newWizard(school) : null,
+  );
   const [clsOpen, setClsOpen] = useState<string | null>(null);
   const [addC, setAddC] = useState({ n: '', from: '' });
   const t = school.teachers.find((x) => x.id === picked) ?? school.teachers[0];

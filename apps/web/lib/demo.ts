@@ -26,6 +26,7 @@ export function demoSchoolState(name: string, now = new Date()): SchoolState {
     substitutions: [],
     notices: [{ ...noticePublished(), id: uid(), ts: now.getTime() }],
     messages: [],
+    docs: [],
     netLog: [],
   };
 }
@@ -57,6 +58,7 @@ export function emptySchoolState(name: string): SchoolState {
     substitutions: [],
     notices: [],
     messages: [],
+    docs: [],
     netLog: [],
   };
 }

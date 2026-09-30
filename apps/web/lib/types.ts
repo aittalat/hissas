@@ -34,6 +34,16 @@ export interface TimedMessage extends ParentMessage {
   ts: number;
 }
 
+/** وثيقة تلميذ: الاسم والنوع فقط مؤقتا (الملف نفسه على S3 خاص لاحقا). */
+export interface StudentDoc {
+  id: string;
+  student_id: string;
+  name: string;
+  kind: string;
+  size: number;
+  date: string;
+}
+
 export interface SchoolState {
   school: SchoolData;
   placements: Placement[];
@@ -46,6 +56,7 @@ export interface SchoolState {
   notices: TimedNotice[];
   /** رسائل خاصة لولي تلميذ (غياب، حادثة). */
   messages: TimedMessage[];
+  docs: StudentDoc[];
   /** سجل شبكة الأساتذة المشتركين. */
   netLog: { ts: number; text: string }[];
 }
