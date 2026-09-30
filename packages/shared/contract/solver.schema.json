@@ -1,0 +1,784 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "SolveRequest": {
+      "$ref": "#/$defs/SolveRequest"
+    },
+    "SolveResponse": {
+      "$ref": "#/$defs/SolveResponse"
+    },
+    "RepairRequest": {
+      "$ref": "#/$defs/RepairRequest"
+    },
+    "RepairResponse": {
+      "$ref": "#/$defs/RepairResponse"
+    },
+    "DiagnoseRequest": {
+      "$ref": "#/$defs/DiagnoseRequest"
+    },
+    "DiagnoseResponse": {
+      "$ref": "#/$defs/DiagnoseResponse"
+    }
+  },
+  "required": [
+    "SolveRequest",
+    "SolveResponse",
+    "RepairRequest",
+    "RepairResponse",
+    "DiagnoseRequest",
+    "DiagnoseResponse"
+  ],
+  "title": "SolverContract",
+  "$defs": {
+    "SolveRequest": {
+      "type": "object",
+      "properties": {
+        "school": {
+          "$ref": "#/$defs/SchoolData"
+        },
+        "current": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Placement"
+          }
+        },
+        "options": {
+          "default": {},
+          "$ref": "#/$defs/SolveOptions"
+        }
+      },
+      "required": [
+        "school"
+      ]
+    },
+    "SchoolData": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "number",
+          "const": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "config": {
+          "$ref": "#/$defs/SchoolConfig"
+        },
+        "subjects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Subject"
+          }
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SchoolClass"
+          }
+        },
+        "persons": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Person"
+          }
+        },
+        "teachers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Teacher"
+          }
+        },
+        "locked_classes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Id"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "name",
+        "config",
+        "subjects",
+        "classes",
+        "persons",
+        "teachers",
+        "locked_classes"
+      ]
+    },
+    "SchoolConfig": {
+      "type": "object",
+      "properties": {
+        "period_minutes": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 90
+        },
+        "am_start": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "am_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "pm_start": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+        },
+        "pm_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        },
+        "break_after_2nd_minutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "pairing_mode": {
+          "anyOf": [
+            {
+              "type": "number",
+              "const": 1
+            },
+            {
+              "type": "number",
+              "const": 2
+            }
+          ]
+        },
+        "days": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "string",
+              "enum": [
+                "full",
+                "am",
+                "off"
+              ]
+            },
+            {
+              "type": "string",
+              "enum": [
+                "full",
+                "am",
+                "off"
+              ]
+            },
+            {
+              "type": "string",
+              "enum": [
+                "full",
+                "am",
+                "off"
+              ]
+            },
+            {
+              "type": "string",
+              "enum": [
+                "full",
+                "am",
+                "off"
+              ]
+            },
+            {
+              "type": "string",
+              "enum": [
+                "full",
+                "am",
+                "off"
+              ]
+            },
+            {
+              "type": "string",
+              "enum": [
+                "full",
+                "am",
+                "off"
+              ]
+            }
+          ],
+          "items": false,
+          "minItems": 6,
+          "maxItems": 6
+        }
+      },
+      "required": [
+        "period_minutes",
+        "am_start",
+        "am_count",
+        "pm_start",
+        "pm_count",
+        "break_after_2nd_minutes",
+        "pairing_mode",
+        "days"
+      ]
+    },
+    "Subject": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "pattern": "^[a-z0-9_]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "short": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "hue": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 359
+        },
+        "no_daily_cap": {
+          "type": "boolean"
+        },
+        "hard": {
+          "type": "boolean"
+        },
+        "prefer_double": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "short",
+        "default_hours",
+        "hue",
+        "no_daily_cap",
+        "hard",
+        "prefer_double"
+      ]
+    },
+    "SchoolClass": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "level_rank": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "subjects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "level_rank",
+        "subjects"
+      ]
+    },
+    "Id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_.-]+$"
+    },
+    "Person": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "full_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "shared": {
+          "type": "boolean"
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Slot"
+          }
+        },
+        "other_school": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Slot"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "full_name",
+        "present",
+        "shared",
+        "unavailable",
+        "other_school"
+      ]
+    },
+    "Slot": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Day"
+        },
+        {
+          "$ref": "#/$defs/Period"
+        }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "Day": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "Period": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 15
+    },
+    "Teacher": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/Id"
+        },
+        "person_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClassHours"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "person_id",
+        "subject",
+        "classes"
+      ]
+    },
+    "ClassHours": {
+      "type": "object",
+      "properties": {
+        "class_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        }
+      },
+      "required": [
+        "class_id",
+        "hours"
+      ]
+    },
+    "Placement": {
+      "type": "object",
+      "properties": {
+        "class_id": {
+          "$ref": "#/$defs/Id"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "day": {
+          "$ref": "#/$defs/Day"
+        },
+        "period": {
+          "$ref": "#/$defs/Period"
+        }
+      },
+      "required": [
+        "class_id",
+        "subject",
+        "index",
+        "day",
+        "period"
+      ]
+    },
+    "SolveOptions": {
+      "type": "object",
+      "properties": {
+        "time_limit_s": {
+          "default": 20,
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 120
+        },
+        "random_seed": {
+          "default": 0,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "workers": {
+          "default": 8,
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        }
+      }
+    },
+    "SolveResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/$defs/SolveStatus"
+        },
+        "placements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Placement"
+          }
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "objective": {
+          "type": "number"
+        },
+        "wall_time_s": {
+          "type": "number"
+        },
+        "diagnose": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "placements",
+        "evaluation",
+        "objective",
+        "wall_time_s",
+        "diagnose"
+      ]
+    },
+    "SolveStatus": {
+      "type": "string",
+      "enum": [
+        "optimal",
+        "feasible",
+        "infeasible",
+        "unknown"
+      ]
+    },
+    "Evaluation": {
+      "type": "object",
+      "properties": {
+        "metrics": {
+          "$ref": "#/$defs/PrototypeMetrics"
+        },
+        "conflicts": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "quality": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "metrics",
+        "conflicts",
+        "quality"
+      ]
+    },
+    "PrototypeMetrics": {
+      "type": "object",
+      "properties": {
+        "gaps": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "dups": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "tgaps": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "lone": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "split": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "unplaced": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "placed": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "total": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "gaps",
+        "dups",
+        "tgaps",
+        "lone",
+        "split",
+        "unplaced",
+        "placed",
+        "total"
+      ]
+    },
+    "RepairRequest": {
+      "type": "object",
+      "properties": {
+        "school": {
+          "$ref": "#/$defs/SchoolData"
+        },
+        "current": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Placement"
+          }
+        },
+        "options": {
+          "default": {},
+          "$ref": "#/$defs/SolveOptions"
+        }
+      },
+      "required": [
+        "school",
+        "current"
+      ]
+    },
+    "RepairResponse": {
+      "type": "object",
+      "properties": {
+        "before": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "solutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RepairSolution"
+          }
+        }
+      },
+      "required": [
+        "before",
+        "solutions"
+      ]
+    },
+    "RepairSolution": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/RepairKind"
+        },
+        "placements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Placement"
+          }
+        },
+        "evaluation": {
+          "$ref": "#/$defs/Evaluation"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Change"
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "placements",
+        "evaluation",
+        "changes"
+      ]
+    },
+    "RepairKind": {
+      "type": "string",
+      "enum": [
+        "min_change",
+        "balanced",
+        "best_quality"
+      ]
+    },
+    "Change": {
+      "type": "object",
+      "properties": {
+        "class_id": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "from": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "to": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Slot"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "add": {
+          "type": "boolean"
+        },
+        "del": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "class_id",
+        "subject",
+        "from",
+        "to"
+      ]
+    },
+    "DiagnoseRequest": {
+      "type": "object",
+      "properties": {
+        "school": {
+          "$ref": "#/$defs/SchoolData"
+        },
+        "current": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Placement"
+          }
+        },
+        "options": {
+          "default": {},
+          "$ref": "#/$defs/SolveOptions"
+        }
+      },
+      "required": [
+        "school"
+      ]
+    },
+    "DiagnoseResponse": {
+      "type": "object",
+      "properties": {
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "max_possible": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MaxPossible"
+          }
+        },
+        "forced_lone": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "conflicting_constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "reasons",
+        "max_possible",
+        "forced_lone",
+        "conflicting_constraints"
+      ]
+    },
+    "MaxPossible": {
+      "type": "object",
+      "properties": {
+        "person_id": {
+          "type": "string"
+        },
+        "need": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "max": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "person_id",
+        "need",
+        "max"
+      ]
+    }
+  }
+}

@@ -2,16 +2,18 @@ import { z } from 'zod';
 import { PlacementSchema, SchoolDataSchema } from './school';
 
 /** مؤشرات النموذج الأولي كما تحسبها metrics() حرفيا. */
-export const PrototypeMetricsSchema = z.object({
-  gaps: z.number().int(),
-  dups: z.number().int(),
-  tgaps: z.number().int(),
-  lone: z.number().int(),
-  split: z.number().int(),
-  unplaced: z.number().int(),
-  placed: z.number().int(),
-  total: z.number().int(),
-});
+export const PrototypeMetricsSchema = z
+  .object({
+    gaps: z.number().int(),
+    dups: z.number().int(),
+    tgaps: z.number().int(),
+    lone: z.number().int(),
+    split: z.number().int(),
+    unplaced: z.number().int(),
+    placed: z.number().int(),
+    total: z.number().int(),
+  })
+  .meta({ id: 'PrototypeMetrics' });
 export type PrototypeMetrics = z.infer<typeof PrototypeMetricsSchema>;
 
 export const OracleRunSchema = z.object({

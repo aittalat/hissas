@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import type { Placement, PrototypeMetrics, SchoolData } from '@hissas/shared';
+import type { Change, Placement, PrototypeMetrics, SchoolData, Slot } from '@hissas/shared';
 import { chromium, type Browser, type Page } from 'playwright';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -40,6 +40,15 @@ interface Bridge {
   forcedLone(): string[];
   generate(budget: number): void;
   adviseTitles(): string[];
+  inspect(unitKeys: string[]): Inspection;
+  diff(s0: SchoolData, p0: Placement[], s1: SchoolData, p1: Placement[]): Change[];
+}
+
+export interface Inspection {
+  /** مفاتيح الوحدات في conflictSet، مرتبة. */
+  conflicts: string[];
+  /** لكل وحدة مطلوبة: الخانات التي يقبلها fits بعد رفعها من مكانها. */
+  targets: Record<string, Slot[]>;
 }
 
 declare global {
@@ -128,6 +137,19 @@ export class PrototypeOracle {
 
   adviseTitles(): Promise<string[]> {
     return this.page.evaluate(() => window.__oracle.adviseTitles());
+  }
+
+  inspect(unitKeys: string[]): Promise<Inspection> {
+    return this.page.evaluate((k) => window.__oracle.inspect(k), unitKeys);
+  }
+
+  diff(s0: SchoolData, p0: Placement[], s1: SchoolData, p1: Placement[]): Promise<Change[]> {
+    return this.page.evaluate(([a, b, c, d]) => window.__oracle.diff(a, b, c, d), [
+      s0,
+      p0,
+      s1,
+      p1,
+    ] as const);
   }
 
   /** generate() كما هو: بحث محلي عشوائي بميزانية زمنية (قد يمتد 12 ث للحصص بدون مكان). */

@@ -45,6 +45,8 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy solver tests
       - run: uv run pytest
+      - name: solver/contract.py مولَّد من آخر عقد
+        run: ./scripts/gen-contract.sh && git diff --exit-code solver/contract.py
 
   compose:
     name: docker compose (db + solver)

@@ -54,6 +54,8 @@
   - داخل `services/solver`: `uv sync`، `uv run ruff check .`، `uv run ruff format --check .`، `uv run mypy solver tests`، `uv run pytest`.
   - `docker compose up -d --build --wait` ← Postgres على 5432 والمحرك على 8000 (`/health`).
   - `pnpm --filter @hissas/prototype-oracle export` ← يعيد توليد `packages/shared/fixtures/scenarios/*.json` من النموذج الأولي (عند تغييره فقط). في بيئة سحابية فيها Chromium مسبقا: `CHROMIUM_PATH=/opt/pw-browsers/chromium`.
+  - عند تغيير عقد المحرك (`packages/shared/src/contract/solver.ts` أو `school.ts`): `pnpm --filter @hissas/shared contract:export` ثم `services/solver/scripts/gen-contract.sh`، ويُلتزم بالملفين المولَّدين (`contract/solver.schema.json` و`solver/contract.py`). CI يفشل إذا لم يُحدَّثا.
+- **نواة المجال** (`packages/shared/src/timetable`) منقولة حرفيا من النموذج الأولي ومحمية باختبار مطابقة عشوائي (`tools/prototype-oracle/test/parity.test.ts`). أي تغيير في سلوكها يجب أن يمر بالمطابقة أو يُسجل كانحراف مقصود.
 - **fixtures السيناريوهات هي الحقيقة المشتركة**: TS وPython يختبران عليها؛ لا تُعدَّل يدويا.
 - **CI** (`.github/workflows/ci.yml`) يشغل كل ما سبق؛ لا commit يكسره.
 - ملف `AGENTS.md` لا يُستعمل (`agentGuidance: false` في turbo.json)؛ المرجع هو هذا الملف.

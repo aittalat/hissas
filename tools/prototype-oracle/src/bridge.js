@@ -2,7 +2,8 @@
    ويستدعي دواله كما هي (metrics, conflictSet, quality, diagnose, tMax, forcedLone, generate, advise).
    يُحقن بعد تحميل reference/prototype.html؛ لا يغيّر أي منطق في النموذج الأولي. */
 /* global S:writable, SUB, NOCAP, DEFCFG, emptyData, seed, unitsOf, persons, clsSubj, hrsOf, lvlRank,
-   metrics, conflictSet, quality, diagnose, tMax, forcedLone, generate, advise */
+   metrics, conflictSet, quality, diagnose, tMax, forcedLone, generate, advise, occFrom, fits,
+   tmap, diffPlans */
 (() => {
   // نسخة من كتالوج المواد الأصلي لإرجاعه قبل seed()
   const BASE_SUB = JSON.parse(JSON.stringify(SUB));
@@ -173,7 +174,48 @@
     return el.textContent;
   };
 
+  const keyOf = (u) => `${u.c}|${u.s}|${unitIndex(u)}`;
+
+  /** مفاتيح الوحدات المخالفة (conflictSet)، والخانات التي تقبل كل وحدة مطلوبة (fits). */
+  function inspect(unitKeys) {
+    const { U } = unitsOf();
+    const byKey = new Map(U.map((u) => [keyOf(u), u]));
+    const conflicts = [...conflictSet(U)].map((id) => keyOf(U.find((u) => u.id === id))).sort();
+    const TM = tmap();
+    const targets = {};
+    for (const k of unitKeys) {
+      const u = byKey.get(k);
+      const o = occFrom(S.place, U, new Set([u.id]));
+      const out = [];
+      for (let d = 0; d < 6; d++)
+        for (let p = 0; p < S.cfg.amN + S.cfg.pmN; p++)
+          if (fits(o, u, d, p, TM[u.t])) out.push([d, p]);
+      targets[k] = out;
+    }
+    return { conflicts, targets };
+  }
+
+  /** diffPlans بين (مدرسة، جدول) و(مدرسة، جدول)، بخانات [يوم، حصة]. */
+  function diff(school0, pls0, school1, pls1) {
+    loadSchool(school0);
+    setPlacements(pls0);
+    const U0 = unitsOf().U;
+    const pl0 = { ...S.place };
+    loadSchool(school1);
+    setPlacements(pls1);
+    const U1 = unitsOf().U;
+    const slot = (v) => (v == null ? null : [Math.floor(v / 100), v % 100]);
+    return diffPlans(pl0, U0, S.place, U1).map((x) => {
+      const r = { class_id: x.c, subject: x.s, from: slot(x.from), to: slot(x.to) };
+      if (x.from == null) r.add = !!x.add;
+      if (x.to == null) r.del = !!x.del;
+      return r;
+    });
+  }
+
   window.__oracle = {
+    inspect,
+    diff,
     seedDemo: () => {
       for (const k of Object.keys(SUB)) delete SUB[k];
       Object.assign(SUB, JSON.parse(JSON.stringify(BASE_SUB)));
