@@ -23,10 +23,18 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
-      - name: Chromium لاختبارات prototype-oracle
+      - name: Chromium لاختبارات prototype-oracle والواجهة
         run: pnpm --filter @hissas/prototype-oracle exec playwright install --with-deps chromium
       - run: pnpm test
       - run: pnpm build
+      - name: اختبارات الواجهة من طرف إلى طرف (Playwright)
+        run: pnpm --filter @hissas/web test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-traces
+          path: apps/web/test-results/
+          retention-days: 7
 
   solver:
     name: Solver (ruff · mypy · pytest)
