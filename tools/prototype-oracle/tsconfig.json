@@ -1,0 +1,7 @@
+{
+  "extends": "@hissas/config/tsconfig/library.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"]
+  },
+  "include": ["src", "test", "*.config.ts"]
+}

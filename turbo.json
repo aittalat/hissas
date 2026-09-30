@@ -9,6 +9,13 @@
     },
     "lint": {},
     "typecheck": {},
-    "test": {}
-  }
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/reference/prototype.html",
+        "$TURBO_ROOT$/packages/shared/fixtures/**"
+      ]
+    }
+  },
+  "globalPassThroughEnv": ["CHROMIUM_PATH", "PLAYWRIGHT_BROWSERS_PATH"]
 }

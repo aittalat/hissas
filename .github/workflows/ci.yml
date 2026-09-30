@@ -23,6 +23,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
+      - name: Chromium لاختبارات prototype-oracle
+        run: pnpm --filter @hissas/prototype-oracle exec playwright install --with-deps chromium
       - run: pnpm test
       - run: pnpm build
 

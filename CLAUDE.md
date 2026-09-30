@@ -53,6 +53,8 @@
   - من الجذر: `pnpm install`، `pnpm format:check`، `pnpm lint`، `pnpm typecheck`، `pnpm test`، `pnpm build`.
   - داخل `services/solver`: `uv sync`، `uv run ruff check .`، `uv run ruff format --check .`، `uv run mypy solver tests`، `uv run pytest`.
   - `docker compose up -d --build --wait` ← Postgres على 5432 والمحرك على 8000 (`/health`).
+  - `pnpm --filter @hissas/prototype-oracle export` ← يعيد توليد `packages/shared/fixtures/scenarios/*.json` من النموذج الأولي (عند تغييره فقط). في بيئة سحابية فيها Chromium مسبقا: `CHROMIUM_PATH=/opt/pw-browsers/chromium`.
+- **fixtures السيناريوهات هي الحقيقة المشتركة**: TS وPython يختبران عليها؛ لا تُعدَّل يدويا.
 - **CI** (`.github/workflows/ci.yml`) يشغل كل ما سبق؛ لا commit يكسره.
 - ملف `AGENTS.md` لا يُستعمل (`agentGuidance: false` في turbo.json)؛ المرجع هو هذا الملف.
 - التطوير على الفرع المحدد؛ commit لكل خطوة مكتملة؛ لا PR إلا بطلب.

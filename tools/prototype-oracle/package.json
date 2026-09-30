@@ -1,0 +1,29 @@
+{
+  "name": "@hissas/prototype-oracle",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "يشغّل reference/prototype.html في Chromium ويستخرج منه البيانات والمؤشرات المرجعية",
+  "exports": {
+    ".": "./src/oracle.ts"
+  },
+  "scripts": {
+    "export": "tsx src/export-scenarios.ts",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@hissas/shared": "workspace:*",
+    "playwright": "1.63.0"
+  },
+  "devDependencies": {
+    "@hissas/config": "workspace:*",
+    "@types/node": "22.20.4",
+    "eslint": "9.39.5",
+    "globals": "17.12.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}

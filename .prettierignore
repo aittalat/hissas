@@ -6,3 +6,4 @@ coverage/
 .turbo/
 services/solver/
 *.md
+packages/shared/fixtures/
