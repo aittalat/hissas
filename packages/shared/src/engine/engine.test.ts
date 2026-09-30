@@ -43,10 +43,16 @@ describe('المحرك المحلي (منقول من engine في النموذج 
     const run = s.prototype.runs[0]!;
     const school = { ...s.school, locked_classes: ['1ACA', 'TC'] };
     const pl = generateTimetable(school, run.placements, 2000);
-    const key = (p: { class_id: string; subject: string; index: number; day: number; period: number }) =>
-      `${p.class_id}|${p.subject}|${p.index}|${p.day}|${p.period}`;
+    const key = (p: {
+      class_id: string;
+      subject: string;
+      index: number;
+      day: number;
+      period: number;
+    }) => `${p.class_id}|${p.subject}|${p.index}|${p.day}|${p.period}`;
     const got = new Set(pl.map(key));
-    for (const p of run.placements) if (['1ACA', 'TC'].includes(p.class_id)) expect(got.has(key(p))).toBe(true);
+    for (const p of run.placements)
+      if (['1ACA', 'TC'].includes(p.class_id)) expect(got.has(key(p))).toBe(true);
   }, 30_000);
 
   it('buildSolutions: حلول مختلفة، كل حل بلا مخالفات، وقائمة التغييرات تطابق الفرق', () => {
@@ -62,7 +68,8 @@ describe('المحرك المحلي (منقول من engine في النموذج 
       expect(sol.changes.length).toBeGreaterThan(0);
     }
     // النتيجة تتحسن من حل لآخر
-    for (let i = 1; i < set.list.length; i++) expect(set.list[i]!.score).toBeLessThan(set.list[i - 1]!.score);
+    for (let i = 1; i < set.list.length; i++)
+      expect(set.list[i]!.score).toBeLessThan(set.list[i - 1]!.score);
   }, 60_000);
 
   it('buildSolutions مع تعديل (زيادة ساعة): البيانات الجديدة في after', () => {
@@ -70,7 +77,12 @@ describe('المحرك المحلي (منقول من engine في النموذج 
     const state = { school: s.school, placements: s.prototype.runs[0]!.placements };
     const t = s.school.teachers[0]!;
     const c = t.classes[0]!;
-    const set = buildSolutions(state, 'زيادة', { kind: 'add_hour', teacher_id: t.id, class_id: c.class_id, regen: true }, false);
+    const set = buildSolutions(
+      state,
+      'زيادة',
+      { kind: 'add_hour', teacher_id: t.id, class_id: c.class_id, regen: true },
+      false,
+    );
     expect(set.after.school.teachers[0]!.classes[0]!.hours).toBe(c.hours + 1);
   }, 60_000);
 });
