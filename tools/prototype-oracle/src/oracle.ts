@@ -55,6 +55,15 @@ interface Bridge {
   adviseAll(): ProtoAdvice[];
   edit(op: unknown): ProtoEdit;
   importBuild(sheets: unknown[][][]): unknown;
+  lifeQuery(life: unknown, slots: [string, string, number][]): ProtoLifeQuery;
+  parentDay(
+    life: unknown,
+    classId: string,
+    day: number,
+    subs: unknown[],
+  ): [string, string][] | null;
+  lifeAction(life: unknown, op: unknown): ProtoLifeAction;
+  brand(colors: string[], names: string[], taken: string[]): ProtoBrand;
   importApply(sheets: unknown[][][]): SchoolData | null;
   exportsAll(which: string): ProtoExports;
   workbookSheets(which: string): ProtoSheet[];
@@ -67,6 +76,35 @@ interface Bridge {
   applyAdvice(i: number, j: number): { school: SchoolData; placements: Placement[] };
   targets(keys: string[]): Record<string, ProtoTarget>;
   diff(s0: SchoolData, p0: Placement[], s1: SchoolData, p1: Placement[]): Change[];
+}
+
+export interface ProtoLifeQuery {
+  abs: Record<string, { abs: number; late: number; unj: number; month: number }>;
+  points: Record<string, number>;
+  lists: Record<string, { H: string[]; R: (string | number)[][] }>;
+  labels: string[];
+  docs: { attestation: string | null; table: string };
+}
+
+export interface ProtoLifeAction {
+  students: unknown[];
+  parents: unknown[];
+  attendance: { id: string }[];
+  incidents: { id: string; time: string }[];
+  meetings: { id: string }[];
+  messages: { student_id: string; text: string; darija: string }[];
+  toast: string;
+  newStudent: string | null;
+  newParent: string | null;
+}
+
+export interface ProtoBrand {
+  ink: Record<string, string>;
+  css: Record<string, string>;
+  slug: Record<string, string>;
+  initial: Record<string, string>;
+  hue: Record<string, number>;
+  initials: Record<string, string>;
 }
 
 export interface ProtoExports {
@@ -261,6 +299,36 @@ export class PrototypeOracle {
       day,
       ctx,
       choices,
+    ] as const);
+  }
+
+  parentDay(
+    life: unknown,
+    classId: string,
+    day: number,
+    subs: unknown[],
+  ): Promise<[string, string][] | null> {
+    return this.page.evaluate(([l, c, d, s]) => window.__oracle.parentDay(l, c, d, s), [
+      life,
+      classId,
+      day,
+      subs,
+    ] as const);
+  }
+
+  lifeQuery(life: unknown, slots: [string, string, number][]): Promise<ProtoLifeQuery> {
+    return this.page.evaluate(([l, s]) => window.__oracle.lifeQuery(l, s), [life, slots] as const);
+  }
+
+  lifeAction(life: unknown, op: unknown): Promise<ProtoLifeAction> {
+    return this.page.evaluate(([l, o]) => window.__oracle.lifeAction(l, o), [life, op] as const);
+  }
+
+  brand(colors: string[], names: string[], taken: string[]): Promise<ProtoBrand> {
+    return this.page.evaluate(([c, n, t]) => window.__oracle.brand(c, n, t), [
+      colors,
+      names,
+      taken,
     ] as const);
   }
 

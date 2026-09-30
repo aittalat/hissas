@@ -5,3 +5,5 @@ export * from './timetable';
 export * from './edit';
 export * from './catalog';
 export * from './io';
+export * from './life';
+export * from './ui';

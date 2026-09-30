@@ -5,7 +5,9 @@
    metrics, conflictSet, quality, diagnose, tMax, forcedLone, generate, advise, occFrom, fits,
    tmap, diffPlans, buildOcc, rowGroups, targetsFor, activeDays, loneList, proposals */
 /* global UI:writable, analyze, approve, darijaFor, optLabel, saveNewTeacher, buildImport, sortClasses,
-   distAOA, freeAOA, ttMatrix, ttTitle, exportTargets, printableHTML, workbook, XLSX */
+   distAOA, freeAOA, ttMatrix, ttTitle, exportTargets, printableHTML, workbook, XLSX,
+   absStats, stuPoints, listData, LISTS, slotLabel, inkOn, applyBrand, meta, slugify, ROOT:writable,
+   logoHTML, hueOf, initials, attestationHTML, tableHTML, viewParent, stuList */
 (() => {
   // نسخة من كتالوج المواد الأصلي لإرجاعه قبل seed()
   const BASE_SUB = JSON.parse(JSON.stringify(SUB));
@@ -550,7 +552,319 @@
     });
   }
 
+  // ───── الحياة المدرسية: تحويل بين صيغة SchoolLife وحالة النموذج الأولي ─────
+  const REL = { father: 'الأب', mother: 'الأم', guardian: 'الولي' };
+  const toProtoStudent = (x) => ({
+    id: x.id,
+    fn: x.first_name,
+    ln: x.last_name,
+    g: x.gender,
+    cls: x.class_id,
+    mat: x.matricule,
+    birth: x.birth_date,
+    pid: x.parent_id,
+    status: x.status,
+    health: x.health_note,
+    photoOk: x.photo_consent,
+    since: x.is_new ? 'جديد' : 'قديم',
+  });
+  const fromProtoStudent = (x) => ({
+    id: x.id,
+    class_id: x.cls,
+    first_name: x.fn,
+    last_name: x.ln,
+    gender: x.g,
+    birth_date: x.birth,
+    matricule: x.mat,
+    massar_code: null,
+    parent_id: x.pid,
+    status: x.status,
+    health_note: x.health || '',
+    photo_consent: x.photoOk,
+    is_new: x.since === 'جديد',
+  });
+  const fromProtoParent = (p) => ({
+    id: p.id,
+    full_name: p.name,
+    phone: p.phone,
+    relation: Object.keys(REL).find((k) => REL[k] === p.rel) || 'father',
+  });
+  const fromProtoAtt = (a) => ({
+    id: a.id,
+    student_id: a.sid,
+    date: a.date,
+    period: a.p,
+    type: a.type,
+    late_minutes: a.mins,
+    justified: a.just,
+    reason: a.reason,
+    comment: a.com,
+    parent_message_status: a.msg,
+  });
+  const fromProtoIncident = (i) => ({
+    id: i.id,
+    student_id: i.sid,
+    date: i.date,
+    time: i.time,
+    title: i.title,
+    type: i.type === 'pos' ? 'positive' : 'negative',
+    gravity: i.grav,
+    measure: i.measure,
+    description: i.desc,
+    visible_to_parent: !!i.pub,
+    recorded_by: i.by,
+  });
+
+  function setLife(L) {
+    S.students = L.students.map(toProtoStudent);
+    S.parents = L.parents.map((p) => ({
+      id: p.id,
+      ln: '',
+      name: p.full_name,
+      phone: p.phone,
+      rel: REL[p.relation],
+    }));
+    S.att = L.attendance.map((a) => ({
+      id: a.id,
+      sid: a.student_id,
+      date: a.date,
+      p: a.period,
+      type: a.type,
+      mins: a.late_minutes,
+      just: a.justified,
+      reason: a.reason,
+      msg: a.parent_message_status,
+      com: a.comment,
+    }));
+    S.incidents = L.incidents.map((i) => ({
+      id: i.id,
+      sid: i.student_id,
+      date: i.date,
+      time: i.time,
+      title: i.title,
+      type: i.type === 'positive' ? 'pos' : 'neg',
+      grav: i.gravity,
+      measure: i.measure,
+      pub: i.visible_to_parent,
+      desc: i.description,
+      by: i.recorded_by,
+    }));
+    S.meetings = [];
+    S.msgs = [];
+    S.docs = [];
+    S.notes = [];
+    S.rules = { absAlert: L.rules.monthly_absence_alert, late: L.rules.late_threshold_minutes };
+  }
+
+  const lifeOut = () => ({
+    students: S.students.map(fromProtoStudent),
+    parents: S.parents.map(fromProtoParent),
+    attendance: S.att.map(fromProtoAtt),
+    incidents: S.incidents.map(fromProtoIncident),
+    meetings: S.meetings.map((m) => ({
+      id: m.id,
+      student_id: m.sid,
+      date: m.date,
+      reason: m.reason,
+      requested_by: m.by,
+      school_attendees: m.school,
+      family_attendees: m.family,
+      discussed_points: m.points,
+      agreed_measures: m.measures,
+    })),
+    messages: [...S.msgs]
+      .reverse()
+      .map((m) => ({ student_id: m.sid, text: m.text, darija: m.darija })),
+  });
+
+  /** absStats، stuPoints، listData (القوائم التسع)، slotLabel لعينة، والوثائق. */
+  function lifeQuery(L, slots) {
+    setLife(L);
+    const absS = {};
+    const pts = {};
+    for (const x of S.students) {
+      absS[x.id] = absStats(x.id);
+      pts[x.id] = stuPoints(x.id);
+    }
+    const lists = {};
+    for (const [k] of LISTS) lists[k] = listData(k);
+    const labels = slots.map(([c, date, p]) => slotLabel(c, date, p));
+    const docs = {
+      attestation: S.students[0] ? attestationHTML(S.students[0]) : null,
+      table: tableHTML(
+        'عنوان',
+        ['أ', 'ب'],
+        [
+          ['1', '<x>'],
+          ['2', '&'],
+        ],
+      ),
+    };
+    return { abs: absS, points: pts, lists, labels, docs };
+  }
+
+  const withInputs = (values, fn) => {
+    const els = Object.entries(values).map(([id, v]) => {
+      const el = document.createElement('input');
+      el.id = id;
+      if (typeof v === 'boolean') {
+        el.type = 'checkbox';
+        el.checked = v;
+      } else el.value = String(v);
+      document.body.appendChild(el);
+      return el;
+    });
+    try {
+      fn();
+    } finally {
+      els.forEach((e) => e.remove());
+    }
+  };
+
+  /** أفعال الحارس العام عبر معالجات الأحداث الحقيقية. */
+  function lifeAction(L, op) {
+    setLife(L);
+    const toast = document.getElementById('toast');
+    toast.textContent = '';
+    const beforeS = new Set(S.students.map((x) => x.id));
+    const beforeP = new Set(S.parents.map((x) => x.id));
+    switch (op.kind) {
+      case 'mark':
+        UI.mk = { cls: op.class_id, date: op.date, p: op.period, marks: {}, mins: {} };
+        for (const m of op.marks) {
+          UI.mk.marks[m.student_id] = m.type;
+          if (m.minutes !== undefined) UI.mk.mins[m.student_id] = m.minutes;
+        }
+        withInputs({ 'mk-cls': op.class_id, 'mk-date': op.date, 'mk-p': op.period }, () =>
+          click('mk-save'),
+        );
+        break;
+      case 'incident':
+        withInputs(
+          {
+            'in-title': op.input.title,
+            'in-type': op.input.type === 'positive' ? 'pos' : 'neg',
+            'in-grav': op.input.gravity,
+            'in-measure': op.input.measure,
+            'in-date': op.input.date,
+            'in-desc': op.input.description,
+            'in-pub': op.input.visible_to_parent,
+          },
+          () => click('in-save', { sid: op.input.student_id }),
+        );
+        break;
+      case 'student':
+        withInputs(
+          {
+            'sn-fn': op.input.first_name,
+            'sn-ln': op.input.last_name,
+            'sn-cls': op.input.class_id,
+            'sn-g': op.input.gender,
+            'sn-birth': op.input.birth_date,
+            'sn-pn': op.input.parent_name,
+            'sn-pp': op.input.parent_phone,
+          },
+          () => click('stu-new-save'),
+        );
+        break;
+      case 'reason':
+        change({ dataset: { reason: op.id }, value: op.value });
+        break;
+      case 'just':
+        change({ dataset: { just: op.id }, checked: op.value });
+        break;
+      case 'meeting':
+        UI.stuOpen = op.input.student_id;
+        withInputs(
+          {
+            'mt-reason': op.input.reason,
+            'mt-date': op.input.date,
+            'mt-by': op.input.requested_by,
+            'mt-school': op.input.school_attendees,
+            'mt-family': op.input.family_attendees,
+            'mt-points': op.input.discussed_points,
+            'mt-measures': op.input.agreed_measures,
+          },
+          () => click('mt-save'),
+        );
+        break;
+      case 'broadcast':
+        withInputs({ 'cm-to': op.to, 'cm-title': op.title, 'cm-text': op.text, 'cm-dar': '' }, () =>
+          click('cm-send'),
+        );
+        break;
+    }
+    return {
+      ...lifeOut(),
+      toast: toast.textContent,
+      newStudent: (S.students.find((x) => !beforeS.has(x.id)) || {}).id || null,
+      newParent: (S.parents.find((x) => !beforeP.has(x.id)) || {}).id || null,
+    };
+  }
+
+  /** مساعدات الهوية. */
+  function brand(colors, names, taken) {
+    const out = { ink: {}, css: {}, slug: {}, initial: {}, hue: {}, initials: {} };
+    const color0 = meta().color;
+    for (const c of colors) {
+      out.ink[c] = inkOn(c);
+      meta().color = c;
+      applyBrand();
+      out.css[c] = document.getElementById('brandcss').textContent;
+    }
+    const keep = ROOT.schools;
+    ROOT.schools = taken.map((slug, i) => ({ id: 'x' + i, slug }));
+    for (const n of names) {
+      out.slug[n] = slugify(n);
+      const el = document.createElement('div');
+      el.innerHTML = logoHTML({ name: n, color: '#1D5A48', logo: null });
+      out.initial[n] = el.textContent;
+      out.hue[n] = hueOf(n);
+      out.initials[n] = initials(n);
+    }
+    ROOT.schools = keep;
+    meta().color = color0;
+    applyBrand();
+    return out;
+  }
+
+  /** الخط الزمني في تطبيق الولي (viewParent) لقسم ويوم، بعد تعويضات: [الوقت، النص]. */
+  function parentDay(L, classId, day, subs) {
+    setLife(L);
+    const { toId } = unitMaps();
+    S.subs = subs.map((x) => ({
+      abs: x.absence_id,
+      d: x.day,
+      p: x.period,
+      len: x.len,
+      cls: x.class_id,
+      uid: toId(x.units[0]),
+      ids: x.units.map(toId),
+      type: x.type,
+      sub: x.substitute_teacher_id,
+      v: x.swap_unit ? toId(x.swap_unit) : null,
+      q: x.swap_period,
+    }));
+    const i = stuList().findIndex((st) => st.c === classId);
+    if (i < 0) return null;
+    UI.stu = i;
+    UI.pday = day;
+    const el = document.createElement('div');
+    el.innerHTML = viewParent();
+    return [...el.querySelectorAll('.tl-it')].map((it) => [
+      it.querySelector('time').textContent,
+      [...it.children]
+        .slice(1)
+        .map((c) => c.textContent)
+        .join(''),
+    ]);
+  }
+
   window.__oracle = {
+    parentDay,
+    lifeQuery,
+    lifeAction,
+    brand,
     importBuild,
     importApply,
     exportsAll,
