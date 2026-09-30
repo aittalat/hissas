@@ -12,6 +12,8 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-sans-arabic": "5.3.0",
+    "@fontsource/noto-kufi-arabic": "5.3.0",
     "@hissas/shared": "workspace:*",
     "next": "16.3.8",
     "react": "19.3.0",
