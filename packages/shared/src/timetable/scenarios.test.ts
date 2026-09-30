@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadScenarios } from '../testing/scenarios';
+import { advise } from './advise';
 import { conflictSet } from './conflicts';
 import { diagnose, forcedLonePersons, maxPossible } from './diagnose';
 import { metrics, quality } from './metrics';
@@ -41,3 +42,11 @@ function order(
     (u) => u.class_id === p.class_id && u.subject === p.subject && u.index === p.index,
   );
 }
+
+describe('اقتراحات النموذج الأولي المحفوظة', () => {
+  it.each(scenarios)('%s: عناوين advise لأفضل تشغيل', (_id, s) => {
+    const best = s.prototype.runs.reduce((a, b) => (b.quality > a.quality ? b : a));
+    const titles = advise(buildModel(s.school), placementMap(best.placements)).map((a) => a.title);
+    expect(titles).toEqual(s.prototype.advise_titles);
+  });
+});

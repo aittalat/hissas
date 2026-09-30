@@ -1,5 +1,5 @@
 import type { Slot } from '../contract/school';
-import type { Model, PlacementMap, Unit } from './units';
+import { unitIndex, type Model, type PlacementMap, type Unit } from './units';
 
 /** إشغال الخانات (newOcc/put في النموذج الأولي). */
 export class Occupancy {
@@ -24,6 +24,11 @@ export class Occupancy {
     this.per.set(`${u.person_id}|${d}|${p}`, u.key);
     const k = `${u.class_id}|${u.subject}|${d}`;
     this.subjDay.set(k, (this.subjDay.get(k) ?? 0) + 1);
+  }
+
+  /** عدد ساعات المادة مع القسم في اليوم. */
+  subjectDayCount(classId: string, subject: string, d: number): number {
+    return this.subjDay.get(`${classId}|${subject}|${d}`) ?? 0;
   }
 
   classAt(classId: string, d: number, p: number) {
@@ -72,7 +77,7 @@ export function applyMoves(
   placed: PlacementMap,
   moves: readonly Move[],
 ): Map<string, Slot> | null {
-  const byKey = new Map(model.units.map((u) => [u.key, u]));
+  const byKey = unitIndex(model);
   const o = Occupancy.from(model, placed, new Set(moves.map((m) => m.unit)));
   const next = new Map(placed);
   for (const m of moves) {
@@ -86,7 +91,7 @@ export function applyMoves(
 
 /** كل الخانات التي يمكن نقل الساعة إليها (بعد رفعها من مكانها). */
 export function validTargets(model: Model, placed: PlacementMap, unit: string): Slot[] {
-  const u = model.units.find((x) => x.key === unit);
+  const u = unitIndex(model).get(unit);
   if (!u) return [];
   const o = Occupancy.from(model, placed, new Set([unit]));
   const out: Slot[] = [];

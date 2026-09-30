@@ -41,8 +41,49 @@ interface Bridge {
   generate(budget: number): void;
   adviseTitles(): string[];
   inspect(unitKeys: string[]): Inspection;
+  groups(): ProtoGroups;
+  lone(): ProtoLone[];
+  adviseAll(): ProtoAdvice[];
+  applyAdvice(i: number, j: number): { school: SchoolData; placements: Placement[] };
+  targets(keys: string[]): Record<string, ProtoTarget>;
   diff(s0: SchoolData, p0: Placement[], s1: SchoolData, p1: Placement[]): Change[];
 }
+
+export interface ProtoAdviceFlags {
+  run: boolean;
+  regen: boolean;
+  fix: boolean;
+  deep: boolean;
+  goto: string | null;
+  teacher: string | null;
+}
+export interface ProtoAdvice {
+  title: string;
+  detail: string;
+  options: { label: string; effects: string[]; flags: ProtoAdviceFlags }[];
+}
+
+export interface ProtoLone {
+  person_id: string;
+  day: number;
+  unit: string;
+  proposals: {
+    moves: { unit: string; day: number; period: number }[];
+    after: PrototypeMetrics;
+    score: number;
+  }[];
+}
+
+export interface ProtoGroup {
+  day: number;
+  period: number;
+  units: string[];
+}
+export interface ProtoGroups {
+  classes: Record<string, ProtoGroup[]>;
+  persons: Record<string, ProtoGroup[]>;
+}
+export type ProtoTarget = { kind: 'move' } | { kind: 'swap'; with: string[] };
 
 export interface Inspection {
   /** مفاتيح الوحدات في conflictSet، مرتبة. */
@@ -141,6 +182,26 @@ export class PrototypeOracle {
 
   inspect(unitKeys: string[]): Promise<Inspection> {
     return this.page.evaluate((k) => window.__oracle.inspect(k), unitKeys);
+  }
+
+  adviseAll(): Promise<ProtoAdvice[]> {
+    return this.page.evaluate(() => window.__oracle.adviseAll());
+  }
+
+  applyAdvice(i: number, j: number): Promise<{ school: SchoolData; placements: Placement[] }> {
+    return this.page.evaluate(([a, b]) => window.__oracle.applyAdvice(a, b), [i, j] as const);
+  }
+
+  lone(): Promise<ProtoLone[]> {
+    return this.page.evaluate(() => window.__oracle.lone());
+  }
+
+  groups(): Promise<ProtoGroups> {
+    return this.page.evaluate(() => window.__oracle.groups());
+  }
+
+  targets(keys: string[]): Promise<Record<string, ProtoTarget>> {
+    return this.page.evaluate((k) => window.__oracle.targets(k), keys);
   }
 
   diff(s0: SchoolData, p0: Placement[], s1: SchoolData, p1: Placement[]): Promise<Change[]> {

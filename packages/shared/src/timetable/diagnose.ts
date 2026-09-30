@@ -32,9 +32,13 @@ export function freeSlots(model: Model, personId: string): number {
  * الحد الأقصى الممكن للشخص (tMax، SPEC §6.3): مجموع على الأيام النشطة لـ
  * min(سقف اليوم، الخانات المتاحة في أفضل فترة) — أو في الفترتين للمتواجد.
  */
-export function maxPossible(model: Model, personId: string): { need: number; max: number } {
+export function maxPossible(
+  model: Model,
+  personId: string,
+  presentOverride?: boolean,
+): { need: number; max: number } {
   const { need, cap } = dailyCap(model, personId);
-  const present = model.person(personId)?.present ?? false;
+  const present = presentOverride ?? model.person(personId)?.present ?? false;
   const { grid } = model;
   let max = 0;
   for (const d of grid.activeDays) {

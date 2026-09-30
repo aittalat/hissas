@@ -116,3 +116,14 @@ export function toPlacements(model: Model, map: PlacementMap): Placement[] {
   }
   return out;
 }
+
+const indexCache = new WeakMap<Model, Map<string, Unit>>();
+/** فهرس الوحدات بالمفتاح (مخزن لكل نموذج). */
+export function unitIndex(model: Model): Map<string, Unit> {
+  let m = indexCache.get(model);
+  if (!m) {
+    m = new Map(model.units.map((u) => [u.key, u]));
+    indexCache.set(model, m);
+  }
+  return m;
+}

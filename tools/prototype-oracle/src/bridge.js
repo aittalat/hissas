@@ -3,7 +3,8 @@
    يُحقن بعد تحميل reference/prototype.html؛ لا يغيّر أي منطق في النموذج الأولي. */
 /* global S:writable, SUB, NOCAP, DEFCFG, emptyData, seed, unitsOf, persons, clsSubj, hrsOf, lvlRank,
    metrics, conflictSet, quality, diagnose, tMax, forcedLone, generate, advise, occFrom, fits,
-   tmap, diffPlans */
+   tmap, diffPlans, buildOcc, rowGroups, targetsFor, activeDays, loneList, proposals */
+/* global UI:writable */
 (() => {
   // نسخة من كتالوج المواد الأصلي لإرجاعه قبل seed()
   const BASE_SUB = JSON.parse(JSON.stringify(SUB));
@@ -213,7 +214,100 @@
     });
   }
 
+  const unitMaps = () => {
+    const { U } = unitsOf();
+    const UM = {};
+    for (const u of U) UM[u.id] = u;
+    const toKey = (id) => keyOf(UM[id]);
+    const byKey = new Map(U.map((u) => [keyOf(u), u.id]));
+    return { U, UM, toKey, toId: (k) => byKey.get(k) };
+  };
+
+  /** rowGroups لكل قسم ولكل شخص في كل يوم نشط. */
+  function groups() {
+    const { U, UM, toKey } = unitMaps();
+    const o = buildOcc(U);
+    const map = (kind, id) =>
+      activeDays().flatMap((d) =>
+        rowGroups(o, UM, kind, id, d).map((g) => ({
+          day: d,
+          period: g.p,
+          units: g.ids.map(toKey),
+        })),
+      );
+    const classes = {};
+    for (const c of S.classes) classes[c.id] = map('c', c.id);
+    const people = {};
+    for (const id of Object.keys(persons())) people[id] = map('t', id);
+    return { classes, persons: people };
+  }
+
+  /** targetsFor لاختيار حصة (مفاتيح وحداتها). */
+  function targets(keys) {
+    const { U, toKey, toId } = unitMaps();
+    const tg = targetsFor(keys.map(toId), U);
+    const out = {};
+    for (const [k, v] of Object.entries(tg))
+      out[k] =
+        v === 'move' ? { kind: 'move' } : { kind: 'swap', with: v.slice(5).split(',').map(toKey) };
+    return out;
+  }
+
+  /** أيام الساعة الواحدة وحلولها الصغيرة (loneList + proposals). */
+  function lone() {
+    const { U, toKey } = unitMaps();
+    return loneList(S.place, U).map((ln) => ({
+      person_id: ln.pk,
+      day: ln.d,
+      unit: toKey(ln.uid),
+      proposals: proposals(ln, 3).map((c) => ({
+        moves: c.mv.map((m) => ({ unit: toKey(m.id), day: m.d, period: m.p })),
+        after: c.m,
+        score: c.sc,
+      })),
+    }));
+  }
+
+  const flags = (op) => ({
+    run: typeof op.run === 'function',
+    regen: !!op.regen,
+    fix: !!op.fix,
+    deep: !!op.deep,
+    goto: op.goto || null,
+    teacher: op.tid || null,
+  });
+
+  /** advise(): النصوص (بدون HTML) ونوع كل خيار. */
+  function adviseAll() {
+    return advise().map((a) => ({
+      title: text(a.title),
+      detail: text(a.detail),
+      options: a.opts.map((op) => ({
+        label: text(op.label),
+        effects: op.eff.map(text).filter(Boolean),
+        flags: flags(op),
+      })),
+    }));
+  }
+
+  /** تشغيل run() لخيار (i, j) ثم إرجاع الحالة الناتجة، دون تغيير الحالة الأصلية. */
+  function applyAdvice(i, j) {
+    const snap = JSON.stringify(S);
+    const ui = JSON.stringify(UI);
+    const op = advise()[i].opts[j];
+    op.run();
+    const out = { school: exportSchool(), placements: placements() };
+    S = JSON.parse(snap);
+    Object.assign(UI, JSON.parse(ui));
+    return out;
+  }
+
   window.__oracle = {
+    adviseAll,
+    applyAdvice,
+    lone,
+    groups,
+    targets,
     inspect,
     diff,
     seedDemo: () => {
