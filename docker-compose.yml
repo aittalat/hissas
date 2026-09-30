@@ -1,0 +1,36 @@
+# بيئة التطوير المحلية: قاعدة البيانات والمحرك.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: hissas
+      POSTGRES_PASSWORD: hissas
+      POSTGRES_DB: hissas
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U hissas -d hissas']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  solver:
+    build: ./services/solver
+    ports:
+      - '8000:8000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          '/app/.venv/bin/python',
+          '-c',
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  pgdata:

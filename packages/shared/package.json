@@ -1,0 +1,21 @@
+{
+  "name": "@hissas/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@hissas/config": "workspace:*",
+    "@types/node": "22.20.4",
+    "eslint": "9.39.5",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  }
+}

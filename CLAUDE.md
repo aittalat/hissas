@@ -11,7 +11,8 @@
 
 ## القرارات الثابتة
 
-- **Monorepo**: pnpm workspaces + Turborepo (TS)، uv (Python). Node 22، Python 3.12، PostgreSQL 16.
+- **Monorepo**: pnpm workspaces + Turborepo (TS)، uv (Python). Node 22، TypeScript 6.0 (ليس 7: حدود typescript-eslint)، ESLint 9، Next.js 16، Tailwind 4، Vitest، Python 3.12، PostgreSQL 16.
+- **النشر**: الويب على ECS Fargate (لا Amplify: لا يصل إلى VPC)، RDS خاص، المحرك على ECS داخلي. القرارات المعتمدة في `docs/adr/0001-plan-decisions.md`.
 - **الحزم**: `apps/web` (Next.js App Router + TS + Tailwind)، `apps/mobile` (Expo، لاحقا)، `services/solver` (FastAPI + OR-Tools CP-SAT)، `packages/shared` (نواة المجال + عقد المحرك + RBAC)، `packages/db` (Prisma + SQL)، `infra` (AWS CDK).
 - **عقد المحرك مصدره واحد**: zod في `packages/shared/src/contract` ← JSON Schema ← نماذج pydantic. لا يُكتب العقد يدويا في Python.
 - **المحرك بدون قاعدة بيانات**: يتلقى JSON مكتفيا بذاته ويرجع حلا. لا أسرار DB في المحرك.
@@ -48,5 +49,10 @@
 - **عند الشك في سلوك**: شغّل النموذج الأولي (أو `tools/prototype-oracle`) وطابقه، ولا تخمّن.
 - **أي انحراف عن SPEC** يُسجل كـ ADR في `docs/adr/` بعد موافقة صاحب المشروع.
 - الأداء: التوليد الكامل < 30 ثانية لمدرسة من 30 قسما.
-- الأوامر (بعد الخطوة 0): `pnpm lint`، `pnpm typecheck`، `pnpm test`، `uv run pytest` داخل `services/solver`، `docker compose up -d db`.
+- **الأوامر**:
+  - من الجذر: `pnpm install`، `pnpm format:check`، `pnpm lint`، `pnpm typecheck`، `pnpm test`، `pnpm build`.
+  - داخل `services/solver`: `uv sync`، `uv run ruff check .`، `uv run ruff format --check .`، `uv run mypy solver tests`، `uv run pytest`.
+  - `docker compose up -d --build --wait` ← Postgres على 5432 والمحرك على 8000 (`/health`).
+- **CI** (`.github/workflows/ci.yml`) يشغل كل ما سبق؛ لا commit يكسره.
+- ملف `AGENTS.md` لا يُستعمل (`agentGuidance: false` في turbo.json)؛ المرجع هو هذا الملف.
 - التطوير على الفرع المحدد؛ commit لكل خطوة مكتملة؛ لا PR إلا بطلب.
