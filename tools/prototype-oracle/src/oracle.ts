@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type {
@@ -17,6 +18,7 @@ export const REPO_ROOT = resolve(here, '../../..');
 export const PROTOTYPE_PATH = resolve(REPO_ROOT, 'reference/prototype.html');
 const BRIDGE_PATH = resolve(here, 'bridge.js');
 const INIT_PATH = resolve(here, 'init.js');
+const XLSX_PATH = createRequire(import.meta.url).resolve('xlsx/dist/xlsx.full.min.js');
 
 export function prototypeSha256(): string {
   return createHash('sha256').update(readFileSync(PROTOTYPE_PATH)).digest('hex');
@@ -52,6 +54,10 @@ interface Bridge {
   lone(): ProtoLone[];
   adviseAll(): ProtoAdvice[];
   edit(op: unknown): ProtoEdit;
+  importBuild(sheets: unknown[][][]): unknown;
+  importApply(sheets: unknown[][][]): SchoolData | null;
+  exportsAll(which: string): ProtoExports;
+  workbookSheets(which: string): ProtoSheet[];
   absence(
     teacherId: string,
     day: number,
@@ -61,6 +67,25 @@ interface Bridge {
   applyAdvice(i: number, j: number): { school: SchoolData; placements: Placement[] };
   targets(keys: string[]): Record<string, ProtoTarget>;
   diff(s0: SchoolData, p0: Placement[], s1: SchoolData, p1: Placement[]): Change[];
+}
+
+export interface ProtoExports {
+  dist: (string | number)[][];
+  free: (string | number)[][];
+  mats: {
+    mode: 'class' | 'teacher';
+    id: string;
+    title: { title: string; sub: string };
+    rows: { day: number; cells: { period: number; len: number; subject: string; who: string }[] }[];
+    hours: number;
+  }[];
+  html: string;
+}
+
+export interface ProtoSheet {
+  name: string;
+  rows: (string | number)[][];
+  merges: { s: { r: number; c: number }; e: { r: number; c: number } }[];
 }
 
 export interface ProtoEdit {
@@ -154,8 +179,12 @@ export class PrototypeOracle {
     const page = await browser.newPage();
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    // مكتبة xlsx من CDN غير لازمة للحساب
+    // باقي CDN غير لازم؛ ومكتبة xlsx: نفس الإصدار الذي يحمّله النموذج الأولي (0.18.5) من
+    // node_modules. في Playwright آخر route مسجل هو الأول، لذلك يُسجل الخاص بعد العام.
     await page.route(/cdnjs\.cloudflare\.com/, (r) => r.abort());
+    await page.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/xlsx/, (r) =>
+      r.fulfill({ path: XLSX_PATH, contentType: 'application/javascript' }),
+    );
     await page.addInitScript({ path: INIT_PATH });
     await page.goto(pathToFileURL(PROTOTYPE_PATH).href);
     await page.addScriptTag({ path: BRIDGE_PATH });
@@ -233,6 +262,22 @@ export class PrototypeOracle {
       ctx,
       choices,
     ] as const);
+  }
+
+  importBuild(sheets: unknown[][][]): Promise<unknown> {
+    return this.page.evaluate((s) => window.__oracle.importBuild(s), sheets);
+  }
+
+  importApply(sheets: unknown[][][]): Promise<SchoolData | null> {
+    return this.page.evaluate((s) => window.__oracle.importApply(s), sheets);
+  }
+
+  exportsAll(which: 'all' | 'classes' | 'teachers'): Promise<ProtoExports> {
+    return this.page.evaluate((w) => window.__oracle.exportsAll(w), which);
+  }
+
+  workbookSheets(which: 'all' | 'classes' | 'teachers'): Promise<ProtoSheet[]> {
+    return this.page.evaluate((w) => window.__oracle.workbookSheets(w), which);
   }
 
   /** عملية تعديل عبر معالجات أحداث النموذج الأولي (انظر edit في bridge.js). */

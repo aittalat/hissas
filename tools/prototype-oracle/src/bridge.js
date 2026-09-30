@@ -4,7 +4,8 @@
 /* global S:writable, SUB, NOCAP, DEFCFG, emptyData, seed, unitsOf, persons, clsSubj, hrsOf, lvlRank,
    metrics, conflictSet, quality, diagnose, tMax, forcedLone, generate, advise, occFrom, fits,
    tmap, diffPlans, buildOcc, rowGroups, targetsFor, activeDays, loneList, proposals */
-/* global UI:writable, analyze, approve, darijaFor, optLabel, saveNewTeacher */
+/* global UI:writable, analyze, approve, darijaFor, optLabel, saveNewTeacher, buildImport, sortClasses,
+   distAOA, freeAOA, ttMatrix, ttTitle, exportTargets, printableHTML, workbook, XLSX */
 (() => {
   // نسخة من كتالوج المواد الأصلي لإرجاعه قبل seed()
   const BASE_SUB = JSON.parse(JSON.stringify(SUB));
@@ -465,7 +466,95 @@
     };
   }
 
+  const slotsOf = (keys) => keys.map(toSlot);
+
+  /** buildImport بصيغة ImportResult. */
+  function importBuild(sheets) {
+    const R = buildImport(sheets);
+    if (R.error) return { ok: false, error: R.error };
+    return {
+      ok: true,
+      classes: R.classes.map((c) => ({ id: c.id, name: c.n, subjects: [...c.subj] })),
+      teachers: R.teachers.map((t) => ({
+        id: t.id,
+        person_id: t.pid || t.id,
+        name: t.n,
+        subject: t.s,
+        classes: t.cls.map((c) => ({ class_id: c, hours: t.hrs[c] })),
+        present: t.present,
+        shared: t.shared,
+        unavailable: slotsOf(t.unav),
+        other_school: slotsOf(t.ext),
+      })),
+      custom: Object.entries(R.custom).map(([key, v]) => ({
+        key,
+        name: v.n,
+        short: v.sh,
+        default_hours: v.h,
+        hue: v.hue,
+        no_daily_cap: false,
+        hard: false,
+        prefer_double: false,
+      })),
+      warnings: R.warn,
+      persons: R.persons,
+      with_free: R.withFree,
+    };
+  }
+
+  /** applyImport دون generate() (الجدول يُفرغ). */
+  function importApply(sheets) {
+    const name = S.school;
+    const R = buildImport(sheets);
+    if (R.error) return null;
+    S.classes = R.classes;
+    S.teachers = R.teachers;
+    S.subx = R.custom;
+    for (const [k, v] of Object.entries(R.custom)) SUB[k] = v;
+    sortClasses();
+    S.place = {};
+    S.locked = [];
+    return exportSchool(name);
+  }
+
+  const which = (w) => (w === 'classes' ? 'c' : w === 'teachers' ? 't' : 'all');
+
+  /** مصفوفات وعناوين كل الجداول المصدَّرة، وورقتا التوزيع وأوقات الفراغ. */
+  function exportsAll(w) {
+    const mats = exportTargets(which(w)).map(([mode, id]) => {
+      const M = ttMatrix(mode, id);
+      return {
+        mode: mode === 'c' ? 'class' : 'teacher',
+        id,
+        title: ttTitle(mode, id),
+        rows: M.rows.map((r) => ({
+          day: r.d,
+          cells: r.cells.map((c) => ({ period: c.p, len: c.len, subject: c.s, who: c.who || '' })),
+        })),
+        hours: M.hours,
+      };
+    });
+    return { dist: distAOA(), free: freeAOA(), mats, html: printableHTML(which(w)) };
+  }
+
+  /** ملف Excel كما يكتبه النموذج الأولي، مقروءا من جديد: الأوراق بأسمائها وخلاياها ودمجها. */
+  function workbookSheets(w) {
+    const wb = XLSX.read(workbook(which(w)), { type: 'array' });
+    return wb.SheetNames.map((n) => {
+      const ws = wb.Sheets[n];
+      return {
+        name: n,
+        rows: XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' }),
+        merges: (ws['!merges'] || []).map((m) => ({ s: m.s, e: m.e })),
+      };
+    });
+  }
+
   window.__oracle = {
+    importBuild,
+    importApply,
+    exportsAll,
+    workbookSheets,
     edit,
     absence,
     adviseAll,
