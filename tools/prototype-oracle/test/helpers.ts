@@ -34,3 +34,27 @@ export function* cases(randomCount = CASES, perScenario = 5): Generator<Case> {
       };
   }
 }
+
+/**
+ * تصدير النموذج الأولي يعيد حساب level_rank من الاسم، ويرتب الخانات، ويرتب الأشخاص بظهورهم
+ * في السجلات؛ نقارن بعد نفس التطبيع.
+ */
+export const normSchool = (s: SchoolData): SchoolData => ({
+  ...s,
+  classes: s.classes.map((c) => ({ ...c, level_rank: 0 })),
+  persons: [...s.persons]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map((p) => ({
+      ...p,
+      unavailable: [...p.unavailable].sort((a, b) => a[0] - b[0] || a[1] - b[1]),
+      other_school: [...p.other_school].sort((a, b) => a[0] - b[0] || a[1] - b[1]),
+    })),
+});
+
+export const sortPlacements = (p: Placement[]) =>
+  [...p].sort(
+    (a, b) =>
+      a.class_id.localeCompare(b.class_id) ||
+      a.subject.localeCompare(b.subject) ||
+      a.index - b.index,
+  );

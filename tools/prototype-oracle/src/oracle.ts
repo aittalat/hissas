@@ -2,7 +2,14 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import type { Change, Placement, PrototypeMetrics, SchoolData, Slot } from '@hissas/shared';
+import type {
+  Change,
+  Placement,
+  PrototypeMetrics,
+  SchoolData,
+  Slot,
+  SubstitutionContext,
+} from '@hissas/shared';
 import { chromium, type Browser, type Page } from 'playwright';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -44,9 +51,39 @@ interface Bridge {
   groups(): ProtoGroups;
   lone(): ProtoLone[];
   adviseAll(): ProtoAdvice[];
+  edit(op: unknown): ProtoEdit;
+  absence(
+    teacherId: string,
+    day: number,
+    ctx: SubstitutionContext,
+    choices: number[],
+  ): ProtoAbsence;
   applyAdvice(i: number, j: number): { school: SchoolData; placements: Placement[] };
   targets(keys: string[]): Record<string, ProtoTarget>;
   diff(s0: SchoolData, p0: Placement[], s1: SchoolData, p1: Placement[]): Change[];
+}
+
+export interface ProtoEdit {
+  school: SchoolData;
+  placements: Placement[];
+  toast: string;
+  newTeacherId: string | null;
+}
+
+export interface ProtoAbsence {
+  lessons: {
+    period: number;
+    len: number;
+    units: string[];
+    class_id: string;
+    subject: string;
+    teacher_id: string;
+    options: unknown[];
+    texts: { label: string; darija: string }[];
+  }[];
+  approved: unknown[];
+  notices: { class_id: string | null; title: string; text: string; darija: string | null }[];
+  ledger: Record<string, { sub: number; abs: number }>;
 }
 
 export interface ProtoAdviceFlags {
@@ -182,6 +219,25 @@ export class PrototypeOracle {
 
   inspect(unitKeys: string[]): Promise<Inspection> {
     return this.page.evaluate((k) => window.__oracle.inspect(k), unitKeys);
+  }
+
+  absence(
+    teacherId: string,
+    day: number,
+    ctx: SubstitutionContext,
+    choices: number[],
+  ): Promise<ProtoAbsence> {
+    return this.page.evaluate(([t, d, c, ch]) => window.__oracle.absence(t, d, c, ch), [
+      teacherId,
+      day,
+      ctx,
+      choices,
+    ] as const);
+  }
+
+  /** عملية تعديل عبر معالجات أحداث النموذج الأولي (انظر edit في bridge.js). */
+  edit(op: unknown): Promise<ProtoEdit> {
+    return this.page.evaluate((o) => window.__oracle.edit(o), op);
   }
 
   adviseAll(): Promise<ProtoAdvice[]> {

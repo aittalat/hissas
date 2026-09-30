@@ -4,7 +4,7 @@
 /* global S:writable, SUB, NOCAP, DEFCFG, emptyData, seed, unitsOf, persons, clsSubj, hrsOf, lvlRank,
    metrics, conflictSet, quality, diagnose, tMax, forcedLone, generate, advise, occFrom, fits,
    tmap, diffPlans, buildOcc, rowGroups, targetsFor, activeDays, loneList, proposals */
-/* global UI:writable */
+/* global UI:writable, analyze, approve, darijaFor, optLabel, saveNewTeacher */
 (() => {
   // نسخة من كتالوج المواد الأصلي لإرجاعه قبل seed()
   const BASE_SUB = JSON.parse(JSON.stringify(SUB));
@@ -302,7 +302,172 @@
     return out;
   }
 
+  /** analyze + approve لغياب سجل أستاذ في يوم، بعد تعويضات سابقة (ctx). */
+  function absence(teacherId, day, ctx, choices) {
+    const snap = JSON.stringify(S);
+    const ui = JSON.stringify(UI);
+    const { UM, toKey, toId } = unitMaps();
+    const TM = tmap();
+    S.absences = ctx.absences.map((a) => ({ id: a.id, tid: a.teacher_id, d: a.day, r: a.reason }));
+    S.subs = ctx.substitutions.map((x) => ({
+      abs: x.absence_id,
+      d: x.day,
+      p: x.period,
+      len: x.len,
+      cls: x.class_id,
+      uid: toId(x.units[0]),
+      ids: x.units.map(toId),
+      type: x.type,
+      sub: x.substitute_teacher_id,
+      v: x.swap_unit ? toId(x.swap_unit) : null,
+      q: x.swap_period,
+    }));
+    S.ledger = {};
+    S.notes = [];
+    UI.absT = teacherId;
+    UI.absD = day;
+    UI.absR = 'مرض';
+    const rows = analyze(teacherId, day);
+    const lessons = rows.map((r) => ({
+      period: r.p,
+      len: r.u.len,
+      units: r.ids.map(toKey),
+      class_id: r.u.c,
+      subject: r.u.s,
+      teacher_id: r.u.t,
+      options: r.opts.map((o) =>
+        o.type === 'swap'
+          ? { type: 'swap', unit: toKey(o.v), period: o.q }
+          : o.type === 'cancel'
+            ? { type: 'cancel' }
+            : { type: o.type, teacher_id: o.t },
+      ),
+      texts: r.opts.map((o) => ({
+        label: text(optLabel(o, TM, UM)),
+        darija: darijaFor(r, o, TM, UM),
+      })),
+    }));
+    rows.forEach((r, i) => (r.choice = choices[i] ?? 0));
+    UI.absRows = rows;
+    approve();
+    const aid = S.absences[S.absences.length - 1].id;
+    const approved = S.subs
+      .filter((x) => x.abs === aid)
+      .map((x) => ({
+        day: x.d,
+        period: x.p,
+        len: x.len,
+        class_id: x.cls,
+        units: x.ids.map(toKey),
+        type: x.type,
+        substitute_teacher_id: x.sub,
+        swap_unit: x.v ? toKey(x.v) : null,
+        swap_period: x.q,
+      }));
+    const notices = [...S.notes]
+      .reverse()
+      .map((n) => ({ class_id: n.cls, title: n.title, text: n.text, darija: n.darija }));
+    const ledger = S.ledger;
+    S = JSON.parse(snap);
+    Object.assign(UI, JSON.parse(ui));
+    return { lessons, approved, notices, ledger };
+  }
+
+  const click = (act, data = {}) => {
+    const el = document.createElement('button');
+    el.dataset.act = act;
+    Object.assign(el.dataset, data);
+    document.body.appendChild(el);
+    el.click();
+    el.remove();
+  };
+  const change = ({ id, dataset, value, checked }) => {
+    const el = document.createElement('input');
+    if (checked !== undefined) {
+      el.type = 'checkbox';
+      el.checked = checked;
+    }
+    if (id) el.id = id;
+    if (dataset) Object.assign(el.dataset, dataset);
+    if (value !== undefined) el.value = value;
+    document.body.appendChild(el);
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+    el.remove();
+  };
+
+  /** تعديل بيانات عبر معالجات الأحداث الحقيقية لشاشة "الأساتذة والأقسام". */
+  function edit(op) {
+    const toast = document.getElementById('toast');
+    toast.textContent = '';
+    const before = new Set(S.teachers.map((t) => t.id));
+    // save() يعيد اسم المدرسة إلى اسم المنصة ('oracle')؛ نحتفظ بالاسم الأصلي
+    const name = S.school;
+    if (op.teacher) UI.dataT = op.teacher;
+    switch (op.kind) {
+      case 'hours':
+        click('ed-h', { c: op.class, v: String(op.delta) });
+        break;
+      case 'add_teacher':
+        UI.newT = {
+          n: op.input.name,
+          s: op.input.subject,
+          cls: { ...op.input.classes },
+          present: op.input.present,
+          free: op.input.free.map(([d, p]) => d + '-' + p),
+          done: null,
+        };
+        saveNewTeacher();
+        break;
+      case 'rename':
+        change({ id: 'ed-n', value: op.name });
+        break;
+      case 'subject':
+        change({ id: 'ed-s', value: op.subject });
+        break;
+      case 'present':
+        change({ id: 'ed-pr', checked: op.on });
+        break;
+      case 'shared':
+        change({ id: 'ed-sh', checked: op.on });
+        break;
+      case 'avail_slot':
+        change({ dataset: { av: op.day + '-' + op.period, scope: 'edit' }, checked: op.on });
+        break;
+      case 'avail_day':
+        change({ dataset: { avday: String(op.day), scope: 'edit' }, checked: op.on });
+        break;
+      case 'avail_col':
+        change({ dataset: { avcol: String(op.period), scope: 'edit' }, checked: op.on });
+        break;
+      case 'quick':
+        click('av-quick', { scope: 'edit', v: op.mode });
+        break;
+      case 'delete_teacher':
+        click('del-ok');
+        break;
+      case 'add_class':
+        UI.addC = { n: op.name, from: op.from || '' };
+        click('cls-add');
+        break;
+      case 'toggle_subject':
+        click('cls-subj', { c: op.class, s: op.subject });
+        break;
+      case 'delete_class':
+        click('cls-del-ok', { id: op.class });
+        break;
+    }
+    const added = S.teachers.find((t) => !before.has(t.id));
+    return {
+      school: exportSchool(name),
+      placements: placements(),
+      toast: toast.textContent,
+      newTeacherId: added ? added.id : null,
+    };
+  }
+
   window.__oracle = {
+    edit,
+    absence,
     adviseAll,
     applyAdvice,
     lone,

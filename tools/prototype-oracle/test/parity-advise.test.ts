@@ -4,13 +4,11 @@ import {
   buildModel,
   placementMap,
   type AdviceAction,
-  type Placement,
-  type SchoolData,
 } from '@hissas/shared';
 import { rng } from '@hissas/shared/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PrototypeOracle, type ProtoAdviceFlags } from '../src/oracle';
-import { cases } from './helpers';
+import { cases, normSchool, sortPlacements } from './helpers';
 
 let oracle: PrototypeOracle;
 beforeAll(async () => {
@@ -34,30 +32,6 @@ function flagsOf(a: AdviceAction): ProtoAdviceFlags {
       return { ...base, fix: true, deep: a.deep };
   }
 }
-
-/**
- * تصدير النموذج الأولي يعيد حساب level_rank من الاسم، ويرتب الخانات، ويرتب الأشخاص بظهورهم
- * في السجلات؛ نقارن بعد نفس التطبيع.
- */
-const norm = (s: SchoolData): SchoolData => ({
-  ...s,
-  classes: s.classes.map((c) => ({ ...c, level_rank: 0 })),
-  persons: [...s.persons]
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .map((p) => ({
-      ...p,
-      unavailable: [...p.unavailable].sort((a, b) => a[0] - b[0] || a[1] - b[1]),
-      other_school: [...p.other_school].sort((a, b) => a[0] - b[0] || a[1] - b[1]),
-    })),
-});
-
-const sortP = (p: Placement[]) =>
-  [...p].sort(
-    (a, b) =>
-      a.class_id.localeCompare(b.class_id) ||
-      a.subject.localeCompare(b.subject) ||
-      a.index - b.index,
-  );
 
 describe('advise مطابق للنموذج الأولي', () => {
   it('المشاكل والخيارات وأثر تطبيق كل خيار', async () => {
@@ -96,8 +70,10 @@ describe('advise مطابق للنموذج الأولي', () => {
         const { i, j, o } = r.pick(runnable);
         const state = applyAdviceAction({ school: c.school, placements: c.placements }, o.action);
         const p = await oracle.applyAdvice(i, j);
-        expect(norm(state.school), `${c.label}: ${o.label}`).toEqual(norm(p.school));
-        expect(sortP(state.placements), `${c.label}: ${o.label}`).toEqual(sortP(p.placements));
+        expect(normSchool(state.school), `${c.label}: ${o.label}`).toEqual(normSchool(p.school));
+        expect(sortPlacements(state.placements), `${c.label}: ${o.label}`).toEqual(
+          sortPlacements(p.placements),
+        );
         applied++;
       }
     }

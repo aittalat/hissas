@@ -6,4 +6,5 @@ export * from './groups';
 export * from './lone';
 export * from './metrics';
 export * from './moves';
+export * from './substitutions';
 export * from './units';
