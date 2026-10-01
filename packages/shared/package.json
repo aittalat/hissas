@@ -1,0 +1,28 @@
+{
+  "name": "@hissas/shared",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts",
+    "./fixtures/*": "./fixtures/*"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "contract:export": "tsx scripts/export-contract.ts"
+  },
+  "devDependencies": {
+    "@hissas/config": "workspace:*",
+    "@types/node": "22.20.4",
+    "eslint": "9.39.5",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.3"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  }
+}

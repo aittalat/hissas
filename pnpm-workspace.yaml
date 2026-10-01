@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/*
+
+# سكربتات التثبيت غير لازمة (الحزم الأصلية تأتي كتبعيات اختيارية جاهزة)
+ignoredBuiltDependencies:
+  - unrs-resolver

@@ -1,0 +1,48 @@
+[project]
+name = "hissas-solver"
+version = "0.0.0"
+description = "محرك جداول الحصص لمنصة حصص (FastAPI + OR-Tools CP-SAT)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.142,<0.143",
+    "ortools>=9.15,<9.16",
+    "pydantic>=2.13,<3",
+    "uvicorn[standard]>=0.54,<0.55",
+]
+
+[dependency-groups]
+dev = [
+    "datamodel-code-generator>=0.83,<0.84",
+    "httpx2>=2.13,<3",
+    "mypy>=2.3,<2.4",
+    "pytest>=9.1,<9.2",
+    "ruff>=0.16,<0.17",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["solver"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = ["slow: اختبارات الأداء (30 قسما)"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["ortools.*"]
+ignore_missing_imports = true
