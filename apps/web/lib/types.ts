@@ -57,6 +57,10 @@ export interface SchoolState {
   /** رسائل خاصة لولي تلميذ (غياب، حادثة). */
   messages: TimedMessage[];
   docs: StudentDoc[];
+  /** صور التلاميذ: رابط data مصغّر مؤقتا (S3 خاص تحت {school_id}/ لاحقا). */
+  photos: Record<string, string>;
+  /** مدرسة تجريبية: التلاميذ بلا صورة يظهرون برسم توضيحي (لا صور حقيقية). */
+  demo?: boolean;
   /** سجل شبكة الأساتذة المشتركين. */
   netLog: { ts: number; text: string }[];
 }

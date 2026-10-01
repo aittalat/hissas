@@ -33,7 +33,12 @@ function load(): PlatformState {
       const o = JSON.parse(raw) as PlatformState;
       if (o?.v === 1 && o.schools?.length) {
         // حقول أُضيفت بعد أول نسخة
-        for (const d of Object.values(o.data)) d.docs ??= [];
+        for (const d of Object.values(o.data)) {
+          d.docs ??= [];
+          d.photos ??= {};
+        }
+        for (const m of o.schools)
+          if (m.slug === 'demo' && o.data[m.id]) o.data[m.id]!.demo ??= true;
         return (state = o);
       }
     }

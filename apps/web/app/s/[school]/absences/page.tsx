@@ -13,7 +13,9 @@ import {
 } from '@hissas/shared';
 import { useState } from 'react';
 import { useModals } from '@/components/life/modals';
-import { Avatar, ClassFilter, PanelHead, SubTabs, useSubTab } from '@/components/life/ui';
+import { UserX } from 'lucide-react';
+import { usePhoto } from '@/components/life/photo';
+import { Avatar, ClassFilter, PageHeader, useSubTab } from '@/components/life/ui';
 import { uid } from '@/lib/demo';
 import { fmtDate, useLife } from '@/lib/life';
 
@@ -28,11 +30,14 @@ export default function AbsencesPage() {
   const tab = useSubTab(TABS);
   return (
     <>
-      <PanelHead
+      <PageHeader
+        icon={UserX}
+        tone="var(--p-pink)"
         title="غياب وتأخر التلاميذ"
         sub="كل غياب يُرسَل للولي في التطبيق وبرسالة صوتية بالدارجة."
+        tabs={TABS}
+        current={tab}
       />
-      <SubTabs items={TABS} current={tab} />
       {tab === 'mark' ? <Mark /> : tab === 'track' ? <Track /> : <List />}
     </>
   );
@@ -40,6 +45,7 @@ export default function AbsencesPage() {
 
 function Mark() {
   const { life, model, placed, today, apply } = useLife();
+  const photo = usePhoto();
   const classes = model.school.classes;
   const [cls, setCls] = useState(classes[0]?.id ?? '');
   const [date, setDate] = useState(today);
@@ -125,7 +131,7 @@ function Mark() {
           return (
             <div key={s.id} className="row" style={{ cursor: 'default' }}>
               <span className="toolbar">
-                <Avatar name={studentName(s)} gender={s.gender} size={32} />
+                <Avatar name={studentName(s)} gender={s.gender} photo={photo(s)} size={40} />
                 <b>{studentName(s)}</b>
               </span>
               <span className="seg" role="group" aria-label={studentName(s)}>

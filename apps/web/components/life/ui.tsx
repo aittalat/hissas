@@ -1,27 +1,71 @@
 'use client';
 
-import { avatarHue, initials } from '@hissas/shared';
+/* eslint-disable @next/next/no-img-element -- الصور روابط data أو روابط S3 موقّعة */
+import { hueOf, initials } from '@hissas/shared';
+import { LayoutGrid, List, Search, SlidersHorizontal, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
-/** رأس الشاشة (panelHead): العنوان، سطر وصف، وأزرار. */
-export function PanelHead({
+/** درجات الباستيل للبطاقات (tone-0 … tone-5). */
+export const TONES = 6;
+export const toneOf = (key: string) => `tone-${hueOf(key) % TONES}`;
+
+/**
+ * رأس الصفحة: أيقونة على خلفية باستيل، العنوان والعدد، تبويبات حبوب (?tab=)، وأدوات
+ * (تحميل، بحث، تصفية، طريقة العرض).
+ */
+export function PageHeader<K extends string>({
+  icon: Icon,
+  tone = 'var(--p-yellow)',
   title,
+  count,
   sub,
+  nav,
+  tabs,
+  current,
   children,
 }: {
-  title: ReactNode;
+  icon: LucideIcon;
+  tone?: string;
+  title: string;
+  count?: number;
   sub?: string;
+  /** تبويبات بمسارات (جدول الحصص) بدل ?tab=. */
+  nav?: ReactNode;
+  tabs?: readonly (readonly [K, string])[];
+  current?: K;
   children?: ReactNode;
 }) {
+  const path = usePathname();
   return (
-    <header className="mhead">
-      <div>
-        <h2>{title}</h2>
+    <header className="phead">
+      <span className="phead-ic" style={{ '--tone': tone } as CSSProperties}>
+        <Icon aria-hidden />
+      </span>
+      <div className="phead-main">
+        <h2>
+          {title} {count !== undefined && <small className="num">({count})</small>}
+        </h2>
         {sub && <p className="hint">{sub}</p>}
+        {nav}
+        {tabs && (
+          <nav className="pills subtabs" aria-label={title}>
+            {tabs.map(([k, n], i) => (
+              <Link
+                key={k}
+                className="pill"
+                href={i === 0 ? path : `${path}?tab=${k}`}
+                aria-pressed={current === k}
+                replace
+              >
+                {n}
+              </Link>
+            ))}
+          </nav>
+        )}
       </div>
-      <div className="toolbar">{children}</div>
+      {children && <div className="phead-tools">{children}</div>}
     </header>
   );
 }
@@ -32,59 +76,36 @@ export function useSubTab<K extends string>(items: readonly (readonly [K, string
   return (items.find(([k]) => k === v)?.[0] ?? items[0]?.[0]) as K;
 }
 
-export function SubTabs<K extends string>({
-  items,
-  current,
-}: {
-  items: readonly (readonly [K, string])[];
-  current: K;
-}) {
-  const path = usePathname();
-  return (
-    <div className="chips subtabs">
-      {items.map(([k, n], i) => (
-        <Link
-          key={k}
-          className="chip"
-          href={i === 0 ? path : `${path}?tab=${k}`}
-          aria-pressed={current === k}
-          replace
-        >
-          {n}
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-/** صورة رمزية بالحروف الأولى (avatar): أزرق للذكور، وردي للإناث، ولون من الاسم للأولياء. */
+/**
+ * صورة الشخص: الصورة إن وُجدت، وإلا الحروف الأولى على تدرّج لوني ثابت من الاسم.
+ * ring: إطار أبيض وظل (بطاقات التلاميذ ولوحة التفاصيل).
+ */
 export function Avatar({
   name,
   gender,
+  photo,
   size = 56,
+  ring = false,
 }: {
   name: string;
   gender?: 'm' | 'f' | null;
+  photo?: string | null;
   size?: number;
+  ring?: boolean;
 }) {
+  const h = gender === 'f' ? 330 : gender === 'm' ? 205 : hueOf(name);
+  const cls = `ph${photo ? ' pic' : ''}${ring ? ' ring' : ''}`;
   return (
     <span
-      className="av"
-      style={
-        {
-          width: size,
-          height: size,
-          fontSize: size * 0.36,
-          '--h': avatarHue(name, gender),
-        } as CSSProperties
-      }
+      className={cls}
+      style={{ width: size, height: size, fontSize: size * 0.34, '--h': h } as CSSProperties}
     >
-      {initials(name)}
+      {photo ? <img src={photo} alt="" /> : initials(name)}
     </span>
   );
 }
 
-/** بحث بالاسم (searchBox). */
+/** بحث (searchBox) مع اختيار الحقل اختياريا. */
 export function SearchBox({
   value,
   onChange,
@@ -95,7 +116,8 @@ export function SearchBox({
   placeholder?: string;
 }) {
   return (
-    <label>
+    <label className="search">
+      <Search aria-hidden />
       <span className="sr">{placeholder}</span>
       <input
         type="search"
@@ -119,8 +141,8 @@ export function ClassFilter({
   onChange: (v: string) => void;
 }) {
   return (
-    <label>
-      <span className="sr">القسم</span>
+    <label className="fld">
+      القسم
       <select id="f-cls" value={value} onChange={(e) => onChange(e.target.value)}>
         <option value="">كل الأقسام</option>
         {classes.map((c) => (
@@ -130,5 +152,61 @@ export function ClassFilter({
         ))}
       </select>
     </label>
+  );
+}
+
+/** إغلاق قائمة منبثقة عند النقر خارجها أو Escape. */
+export function useDismiss<T extends HTMLElement>(open: boolean, close: () => void) {
+  const ref = useRef<T>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
+    };
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open, close]);
+  return ref;
+}
+
+/** زر "تصفية حسب" بقائمة منبثقة. active: عدد المرشحات المفعّلة. */
+export function FilterPop({ active = 0, children }: { active?: number; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useDismiss<HTMLDivElement>(open, () => setOpen(false));
+  return (
+    <div className="pop" ref={ref}>
+      <button className="soft-btn" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <SlidersHorizontal aria-hidden />
+        تصفية حسب{active ? ` (${active})` : ''}
+      </button>
+      {open && <div className="menu">{children}</div>}
+    </div>
+  );
+}
+
+export type ViewMode = 'grid' | 'list';
+
+/** بطاقات أو لائحة. */
+export function ViewToggle({
+  value,
+  onChange,
+}: {
+  value: ViewMode;
+  onChange: (v: ViewMode) => void;
+}) {
+  return (
+    <div className="view-toggle" role="group" aria-label="طريقة العرض">
+      <button aria-pressed={value === 'grid'} aria-label="بطاقات" onClick={() => onChange('grid')}>
+        <LayoutGrid aria-hidden />
+      </button>
+      <button aria-pressed={value === 'list'} aria-label="لائحة" onClick={() => onChange('list')}>
+        <List aria-hidden />
+      </button>
+    </div>
   );
 }

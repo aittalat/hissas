@@ -10,6 +10,7 @@ import {
 } from '@hissas/shared';
 import { useState } from 'react';
 import { Logo } from '@/components/logo';
+import { readLogo } from '@/lib/image';
 import { useToast } from '@/components/toast';
 
 export interface BrandFields {
@@ -17,31 +18,6 @@ export interface BrandFields {
   slug: string;
   color: string;
   logo: string | null;
-}
-
-/**
- * قراءة الشعار وتصغيره إلى 256 بكسل كحد أقصى، PNG (readLogo).
- * لاحقا: رفع إلى S3 خاص تحت {school_id}/ مع رابط موقّع.
- */
-export async function readLogo(file: File): Promise<string> {
-  const url = await new Promise<string>((ok, no) => {
-    const r = new FileReader();
-    r.onload = () => ok(String(r.result));
-    r.onerror = no;
-    r.readAsDataURL(file);
-  });
-  const img = await new Promise<HTMLImageElement>((ok, no) => {
-    const i = new Image();
-    i.onload = () => ok(i);
-    i.onerror = no;
-    i.src = url;
-  });
-  const k = Math.min(1, 256 / Math.max(img.width, img.height));
-  const cv = document.createElement('canvas');
-  cv.width = Math.max(1, Math.round(img.width * k));
-  cv.height = Math.max(1, Math.round(img.height * k));
-  cv.getContext('2d')?.drawImage(img, 0, 0, cv.width, cv.height);
-  return cv.toDataURL('image/png');
 }
 
 /**

@@ -3,7 +3,8 @@
 import { audienceCount, validateBroadcast } from '@hissas/shared';
 import { useState } from 'react';
 import { ParentPreview } from '@/components/life/parent-preview';
-import { PanelHead } from '@/components/life/ui';
+import { MessagesSquare } from 'lucide-react';
+import { PageHeader } from '@/components/life/ui';
 import { fmtTime, useLife } from '@/lib/life';
 
 /** التواصل مع الأولياء (viewComm) + معاينة تطبيق الولي. */
@@ -28,7 +29,9 @@ export default function CommPage() {
   };
   return (
     <>
-      <PanelHead
+      <PageHeader
+        icon={MessagesSquare}
+        tone="var(--p-blue)"
         title="التواصل مع الأولياء"
         sub="رسالة مكتوبة في التطبيق، ورسالة صوتية بالدارجة على واتساب في النسخة الكاملة."
       />

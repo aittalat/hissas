@@ -9,8 +9,11 @@ import {
   studentName,
   todaySummary,
 } from '@hissas/shared';
+import { Clock, House, UserCheck, UserX, Users, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
-import { Avatar, PanelHead } from '@/components/life/ui';
+import type { CSSProperties, ReactNode } from 'react';
+import { usePhoto } from '@/components/life/photo';
+import { Avatar, PageHeader } from '@/components/life/ui';
 import { useModals } from '@/components/life/modals';
 import { fmtDate, useLife } from '@/lib/life';
 
@@ -18,6 +21,7 @@ import { fmtDate, useLife } from '@/lib/life';
 export default function HomePage() {
   const { life, today, cName, state, model, placed, href } = useLife();
   const { openStudent } = useModals();
+  const photo = usePhoto();
   const sum = todaySummary(life, today);
   const di = dayIndex(today);
   const tAbs = state.absences.filter((a) => a.day === di);
@@ -30,7 +34,9 @@ export default function HomePage() {
   };
   return (
     <>
-      <PanelHead
+      <PageHeader
+        icon={House}
+        tone="var(--p-teal)"
         title={`لوحة اليوم · ${fmtDate(today)}`}
         sub="كل ما يحتاجه الحارس العام في صفحة واحدة."
       >
@@ -43,27 +49,26 @@ export default function HomePage() {
         <Link className="btn sm" href={href('/comm')}>
           رسالة للأولياء
         </Link>
-      </PanelHead>
-      <div className="stats">
-        <div className="stat ok">
-          <span>الحاضرون</span>
-          <b className="num">
-            {sum.present}
-            <small> / {sum.active}</small>
-          </b>
-        </div>
-        <div className={`stat${sum.absent ? ' bad' : ''}`}>
-          <span>الغائبون اليوم</span>
-          <b className="num">{sum.absent}</b>
-        </div>
-        <div className="stat">
-          <span>المتأخرون اليوم</span>
-          <b className="num">{sum.late}</b>
-        </div>
-        <div className={`stat${tAbs.length ? ' bad' : ''}`}>
-          <span>أساتذة غائبون</span>
-          <b className="num">{tAbs.length}</b>
-        </div>
+      </PageHeader>
+      <div className="kpis">
+        <Kpi icon={UserCheck} tone="var(--p-green)" label="الحاضرون" cls="ok">
+          {sum.present}
+          <small> / {sum.active}</small>
+        </Kpi>
+        <Kpi icon={UserX} tone="var(--p-pink)" label="الغائبون اليوم" cls={sum.absent ? 'bad' : ''}>
+          {sum.absent}
+        </Kpi>
+        <Kpi icon={Clock} tone="var(--p-yellow)" label="المتأخرون اليوم">
+          {sum.late}
+        </Kpi>
+        <Kpi
+          icon={Users}
+          tone="var(--p-purple)"
+          label="أساتذة غائبون"
+          cls={tAbs.length ? 'bad' : ''}
+        >
+          {tAbs.length}
+        </Kpi>
       </div>
       <div className="grid2">
         <section className="panel">
@@ -76,7 +81,7 @@ export default function HomePage() {
               {alerts.slice(0, 6).map(({ student: s, stats }) => (
                 <button key={s.id} className="row" onClick={() => openStudent(s.id)}>
                   <span className="toolbar">
-                    <Avatar name={studentName(s)} gender={s.gender} size={34} />
+                    <Avatar name={studentName(s)} gender={s.gender} photo={photo(s)} size={40} />
                     <span>
                       <b>{studentName(s)}</b>
                       <br />
@@ -100,7 +105,7 @@ export default function HomePage() {
                 return s ? (
                   <button key={a.id} className="row" onClick={() => openStudent(s.id)}>
                     <span className="toolbar">
-                      <Avatar name={studentName(s)} gender={s.gender} size={34} />
+                      <Avatar name={studentName(s)} gender={s.gender} photo={photo(s)} size={40} />
                       <span>
                         <b>{studentName(s)}</b>
                         <br />
@@ -177,5 +182,31 @@ export default function HomePage() {
         </section>
       </div>
     </>
+  );
+}
+
+function Kpi({
+  icon: Icon,
+  tone,
+  label,
+  cls = '',
+  children,
+}: {
+  icon: LucideIcon;
+  tone: string;
+  label: string;
+  cls?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`kpi ${cls}`} style={{ '--tone': tone } as CSSProperties}>
+      <span className="ic">
+        <Icon aria-hidden />
+      </span>
+      <div>
+        <span>{label}</span>
+        <b className="num">{children}</b>
+      </div>
+    </div>
   );
 }

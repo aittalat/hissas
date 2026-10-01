@@ -2,7 +2,8 @@
 
 import { MODULE_MAP } from '@hissas/shared';
 import { useRouter } from 'next/navigation';
-import { PanelHead } from '@/components/life/ui';
+import { LayoutGrid } from 'lucide-react';
+import { PageHeader } from '@/components/life/ui';
 import { useLife } from '@/lib/life';
 
 /** مسار الوحدات المفعّلة (mod-go). */
@@ -22,7 +23,12 @@ export default function ModulesPage() {
   const router = useRouter();
   return (
     <>
-      <PanelHead title="كل الوحدات" sub="الوحدات المفعّلة تعمل الآن. الأخرى في خارطة الطريق." />
+      <PageHeader
+        icon={LayoutGrid}
+        tone="var(--p-yellow)"
+        title="كل الوحدات"
+        sub="الوحدات المفعّلة تعمل الآن. الأخرى في خارطة الطريق."
+      />
       <div className="lgrid">
         {MODULE_MAP.map(([g, L]) => (
           <section key={g} className="panel">

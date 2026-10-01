@@ -20,10 +20,13 @@ import {
   updateAttendance,
   type Incident,
 } from '@hissas/shared';
+import { Frown, Meh, Plus, Smile, X } from 'lucide-react';
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import { uid } from '@/lib/demo';
+import { readPhoto } from '@/lib/image';
 import { fmtDate, todayISO, useLife } from '@/lib/life';
 import { download } from '@/lib/xlsx';
+import { PhotoActions, usePhoto } from './photo';
 import { Avatar } from './ui';
 
 export type StudentTab = 'info' | 'abs' | 'disc' | 'meet' | 'docs' | 'notes';
@@ -111,6 +114,8 @@ function StudentFile({
   const { meta, life, model, placed, cName, setLife, apply, toast, state, update, today } =
     useLife();
   const s = life.students.find((x) => x.id === id);
+  const photo = usePhoto();
+  const [incident, setIncident] = useState(false);
   const [mt, setMt] = useState({
     reason: '',
     date: todayISO(),
@@ -139,6 +144,10 @@ function StudentFile({
       <div className="grid2">
         <section className="panel">
           <h3>التلميذ</h3>
+          <div style={{ display: 'grid', justifyItems: 'center', gap: 10 }}>
+            <Avatar name={name} gender={s.gender} photo={photo(s)} size={120} ring />
+            <PhotoActions studentId={s.id} />
+          </div>
           <div className="kvl">
             <span>الاسم</span>
             <b>{name}</b>
@@ -281,21 +290,17 @@ function StudentFile({
       .filter((i) => i.student_id === s.id)
       .sort((a, b) => b.date.localeCompare(a.date));
     const lv = pointsLevel(pts);
+    const Face = lv === 'ok' ? Smile : lv === 'mid' ? Meh : Frown;
     body = (
       <div className="grid2">
         <section className="panel">
-          <div className="points">
-            <span className={`face ${lv}`}>{lv === 'ok' ? '☺' : lv === 'mid' ? '😐' : '☹'}</span>
-            <div>
-              <b className="num" style={{ fontSize: 28 }}>
-                {pts}
-              </b>
-              <span className="hint"> / 20 نقطة سلوك</span>
-              <p className="hint">
-                تبدأ كل سنة بـ20 نقطة، وتنقص حسب خطورة الحادثة، وتزيد بالسلوك الإيجابي.
-              </p>
-            </div>
-          </div>
+          <h3>حوادث الانضباط ({I.length})</h3>
+          <button className="add-tile" onClick={() => setIncident(true)}>
+            <span className="plus">
+              <Plus aria-hidden />
+            </span>
+            إضافة حادثة أو سلوك
+          </button>
           <div className="list">
             {I.length ? (
               I.map((i) => (
@@ -316,9 +321,21 @@ function StudentFile({
             )}
           </div>
         </section>
-        <section className="panel">
-          <IncidentForm studentId={s.id} />
+        <section className="panel" style={{ justifyItems: 'center', alignContent: 'center' }}>
+          <div className={`smiley ${lv}`}>
+            <Face aria-hidden />
+            <b className="num" style={{ fontSize: 30 }}>
+              {pts} <small className="hint">/ 20</small>
+            </b>
+            <span className="hint">نقطة سلوك</span>
+          </div>
+          <p className="hint" style={{ textAlign: 'center' }}>
+            تبدأ كل سنة بـ20 نقطة، وتنقص حسب خطورة الحادثة، وتزيد بالسلوك الإيجابي.
+          </p>
         </section>
+        {incident && (
+          <IncidentDialog studentId={s.id} title={name} onClose={() => setIncident(false)} />
+        )}
       </div>
     );
   } else if (tab === 'meet') {
@@ -511,7 +528,7 @@ function StudentFile({
       <div className="sheet">
         <header className="mhead">
           <div className="toolbar">
-            <Avatar name={name} gender={s.gender} size={52} />
+            <Avatar name={name} gender={s.gender} photo={photo(s)} size={64} ring />
             <div>
               <h2>{name}</h2>
               <p className="hint">
@@ -520,13 +537,13 @@ function StudentFile({
               </p>
             </div>
           </div>
-          <button className="btn sm ghost" aria-label="إغلاق" onClick={onClose}>
-            ✕ إغلاق
+          <button className="icon-btn" aria-label="إغلاق" onClick={onClose}>
+            <X aria-hidden />
           </button>
         </header>
-        <div className="chips subtabs">
+        <div className="pills subtabs">
           {tabs.map(([k, n]) => (
-            <button key={k} className="chip" aria-pressed={tab === k} onClick={() => setTab(k)}>
+            <button key={k} className="pill" aria-pressed={tab === k} onClick={() => setTab(k)}>
               {n}
             </button>
           ))}
@@ -538,7 +555,15 @@ function StudentFile({
 }
 
 /** نموذج تسجيل حادثة (incidentForm): بدون تلميذ محدد يظهر اختيار التلميذ. */
-export function IncidentForm({ studentId }: { studentId?: string }) {
+export function IncidentForm({
+  studentId,
+  onDone,
+  onCancel,
+}: {
+  studentId?: string;
+  onDone?: () => void;
+  onCancel?: () => void;
+}) {
   const { life, cName, apply } = useLife();
   const act = life.students.filter((s) => s.status === 'active');
   const blank = {
@@ -575,12 +600,13 @@ export function IncidentForm({ studentId }: { studentId?: string }) {
       return;
     }
     const pts = behaviorPoints(r.life.incidents, sid);
-    if (apply(r, `سُجّلت الحادثة · ${pts}/20 نقطة${F.pub ? ' · أُشعر الولي' : ''}`))
+    if (apply(r, `سُجّلت الحادثة · ${pts}/20 نقطة${F.pub ? ' · أُشعر الولي' : ''}`)) {
       setF({ ...blank, sid: F.sid });
+      onDone?.();
+    }
   };
   return (
     <>
-      <h3>تسجيل حادثة أو سلوك</h3>
       {!studentId && (
         <label className="fld">
           التلميذ
@@ -667,10 +693,51 @@ export function IncidentForm({ studentId }: { studentId?: string }) {
         />
         <span>إشعار الولي في التطبيق</span>
       </label>
-      <button className="btn primary" onClick={save}>
-        حفظ
-      </button>
+      <div className="actions toolbar">
+        {onCancel && (
+          <button className="btn" onClick={onCancel}>
+            إلغاء
+          </button>
+        )}
+        <button className="btn primary" onClick={save}>
+          حفظ
+        </button>
+      </div>
     </>
+  );
+}
+
+/** نافذة تسجيل حادثة (مثل "إضافة تقرير حادثة" في المرجع). */
+export function IncidentDialog({
+  studentId,
+  title,
+  onClose,
+}: {
+  studentId?: string;
+  title?: string;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div
+      className="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="تسجيل حادثة أو سلوك"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="box">
+        <button className="x" aria-label="إغلاق" onClick={onClose}>
+          <X aria-hidden />
+        </button>
+        <h2>تسجيل حادثة أو سلوك{title ? ` · ${title}` : ''}</h2>
+        <IncidentForm studentId={studentId} onDone={onClose} onCancel={onClose} />
+      </div>
+    </div>
   );
 }
 
@@ -684,8 +751,9 @@ function NewStudent({
   onClose: () => void;
   onSaved: (id: string) => void;
 }) {
-  const { life, model, apply } = useLife();
+  const { life, model, apply, update, toast } = useLife();
   const classes = model.school.classes;
+  const [pic, setPic] = useState<string | null>(null);
   const [F, setF] = useState({
     first_name: '',
     last_name: '',
@@ -712,6 +780,32 @@ function NewStudent({
             ✕
           </button>
         </header>
+        <div className="toolbar" style={{ justifyContent: 'center' }}>
+          <Avatar
+            name={`${F.first_name} ${F.last_name}`.trim() || '؟'}
+            gender={F.gender}
+            photo={pic}
+            size={96}
+            ring
+          />
+          <label className="btn sm">
+            {pic ? 'تغيير الصورة' : 'إضافة صورة (اختياري)'}
+            <input
+              type="file"
+              accept="image/*"
+              className="sr"
+              aria-label="صورة التلميذ"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                e.target.value = '';
+                if (f)
+                  readPhoto(f)
+                    .then(setPic)
+                    .catch(() => toast('تعذّرت قراءة الصورة'));
+              }}
+            />
+          </label>
+        </div>
         <div className="grid2" style={{ gap: 10 }}>
           <label className="fld">
             الاسم
@@ -785,7 +879,9 @@ function NewStudent({
               { student_id: sid, parent_id: `p${uid()}` },
               classes.length > 0,
             );
-            if (apply(r)) onSaved(sid);
+            if (!apply(r)) return;
+            if (pic) update((x) => ({ ...x, photos: { ...x.photos, [sid]: pic } }));
+            onSaved(sid);
           }}
         >
           حفظ التلميذ

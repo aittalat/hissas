@@ -13,10 +13,14 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@dicebear/core": "^9.4.3",
+    "@dicebear/lorelei": "^9.4.2",
+    "@dicebear/notionists": "^9.4.2",
     "@fontsource/ibm-plex-sans-arabic": "5.3.0",
     "@fontsource/noto-kufi-arabic": "5.3.0",
     "@hissas/shared": "workspace:*",
     "exceljs": "^4.4.0",
+    "lucide-react": "^1.49.0",
     "next": "16.3.8",
     "react": "19.3.0",
     "react-dom": "19.3.0"

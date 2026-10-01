@@ -24,7 +24,7 @@ export { expect };
 /** فتح صفحة مدرسة وانتظار تحميل المخزن. */
 export async function open(page: Page, path: string) {
   await page.goto(path);
-  await page.locator('main .panel, main .mhead').first().waitFor();
+  await page.locator('main .panel, main .mhead, main .phead').first().waitFor();
 }
 
 /** نص الإشعار القصير (toast). */
@@ -32,4 +32,14 @@ export const toast = (page: Page) => page.locator('#toast');
 
 /** قيمة بطاقة إحصاء بعنوانها. */
 export const stat = (page: Page, label: string) =>
-  page.locator('.stat').filter({ hasText: label }).locator('b').first();
+  page.locator('.stat, .kpi').filter({ hasText: label }).locator('b').first();
+
+/** صورة PNG صغيرة (4×4) للاختبار، بدون ملف على القرص. */
+export const tinyPng = {
+  name: 'photo.png',
+  mimeType: 'image/png',
+  buffer: Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAmkwkpAAAAEklEQVR4nGP4z8DAwMDAAMMAAAQAAf/2bQ5yAAAAAElFTkSuQmCC',
+    'base64',
+  ),
+};

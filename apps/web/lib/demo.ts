@@ -25,8 +25,10 @@ export function demoSchoolState(name: string, now = new Date()): SchoolState {
     absences: [],
     substitutions: [],
     notices: [{ ...noticePublished(), id: uid(), ts: now.getTime() }],
+    demo: true,
     messages: [],
     docs: [],
+    photos: {},
     netLog: [],
   };
 }
@@ -59,6 +61,7 @@ export function emptySchoolState(name: string): SchoolState {
     notices: [],
     messages: [],
     docs: [],
+    photos: {},
     netLog: [],
   };
 }
@@ -68,7 +71,7 @@ export function demoMeta(): SchoolMeta {
     id: `s${uid()}`,
     name: 'مدرسة تجريبية',
     slug: 'demo',
-    color: '#1D5A48',
+    color: '#0F6E7A',
     logo: null,
     created: Date.now(),
   };

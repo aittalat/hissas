@@ -8,6 +8,7 @@ import '@fontsource/noto-kufi-arabic/700.css';
 import '@fontsource/noto-kufi-arabic/800.css';
 import './hissas.css';
 import './web.css';
+import './theme.css';
 
 export const metadata: Metadata = {
   title: 'حصص · منصة التدبير المدرسي',
